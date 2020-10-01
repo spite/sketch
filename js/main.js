@@ -57,7 +57,7 @@ const camera = new PerspectiveCamera(60, 1, 0.1, 100);
 camera.position.set(0, 10, -5);
 
 const loader = new CubeTextureLoader();
-loader.setPath("/assets/");
+loader.setPath("./assets/");
 
 const textureCube = loader.load([
   "posx.jpg",
