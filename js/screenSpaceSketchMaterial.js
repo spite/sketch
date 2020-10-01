@@ -13,7 +13,7 @@ class ScreenSpaceSketchMaterial extends MeshStandardMaterial {
 
     this.onBeforeCompile = (shader, renderer) => {
       const loader = new TextureLoader();
-      const texture = loader.load("../assets/Watercolor_ColdPress.jpg");
+      const texture = loader.load("/assets/Watercolor_ColdPress.jpg");
       shader.uniforms.resolution = { value: new Vector2(1, 1) };
       shader.uniforms.paperTexture = { value: texture };
       shader.uniforms.range = { value: new Vector2(0.25, 0.75) };
