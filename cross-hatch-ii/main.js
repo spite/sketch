@@ -15,12 +15,20 @@ import {
   PointLight,
   DoubleSide,
   CubeTextureLoader,
+  AmbientLight,
+  MeshStandardMaterial,
 } from "../third_party/three.module.js";
 import { OrbitControls } from "../third_party/OrbitControls.js";
-import { ScreenSpaceSketchMaterial } from "./screenSpaceSketchMaterial.js";
+import { CrossHatchMaterial } from "./crossHatchMaterial.js";
 import * as dat from "../third_party/dat.gui.module.js";
+import { init as initBlob } from "../js/sceneBlob.js";
+import { init as initTorus } from "../js/sceneTorus.js";
+import { init as initBackdrop } from "../js/sceneBackdrop.js";
+import { init as initSpheres } from "../js/sceneSpheres.js";
 
 const params = {
+  roughness: 0.2,
+  metalness: 0.1,
   min: 0.25,
   max: 0.75,
   min2: 0.5,
@@ -29,6 +37,9 @@ const params = {
   radius: 3,
 };
 const gui = new dat.GUI();
+gui.add(params, "roughness", 0, 1);
+gui.add(params, "metalness", 0, 1);
+
 gui.add(params, "min", 0, 2);
 gui.add(params, "max", 0, 2);
 gui.add(params, "min2", 0, 2);
@@ -57,7 +68,7 @@ const camera = new PerspectiveCamera(60, 1, 0.1, 100);
 camera.position.set(0, 10, -5);
 
 const loader = new CubeTextureLoader();
-loader.setPath("./assets/");
+loader.setPath("../assets/");
 
 const textureCube = loader.load([
   "posx.jpg",
@@ -69,35 +80,18 @@ const textureCube = loader.load([
 ]);
 textureCube.encoding = sRGBEncoding;
 
-const material = new ScreenSpaceSketchMaterial({
+const material = new CrossHatchMaterial({
   color: 0x808080,
-  roughness: 0.4,
+  roughness: 0.2,
   metalness: 0.1,
   envMap: textureCube,
   side: DoubleSide,
 });
-const torus = new Mesh(new TorusKnotBufferGeometry(2, 0.5, 200, 50), material);
-torus.castShadow = torus.receiveShadow = true;
-scene.add(torus);
 
-const backdrop = new Mesh(new IcosahedronBufferGeometry(20, 4), material);
-//backdrop.castShadow = backdrop.receiveShadow = true;
-scene.add(backdrop);
-
-const r = 10;
-const sphereGeometry = new IcosahedronBufferGeometry(1, 4);
-for (let j = 0; j < 20; j++) {
-  const sphere = new Mesh(sphereGeometry, material);
-  sphere.castShadow = sphere.receiveShadow = true;
-  sphere.scale.setScalar(0.75 + Math.random() * 0.5);
-  const x = Math.random() * 2 * r - r;
-  const y = Math.random() * 2 * r - r;
-  const z = Math.random() * 2 * r - r;
-  sphere.position.set(x, y, z);
-  scene.add(sphere);
-}
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.screenSpacePanning = true;
+initBackdrop(scene, material);
+//initTorus(scene, material);
+initBlob(scene, material);
+initSpheres(scene, material);
 
 const raycaster = new Raycaster();
 const mouse = new Vector2();
@@ -121,12 +115,15 @@ function resize() {
 
 const tmp = new Vector2();
 function render() {
-  torus.rotation.y = performance.now() * 0.001;
-  torus.rotation.z = performance.now() * 0.0005;
+  // torus.rotation.y = performance.now() * 0.001;
+  // torus.rotation.z = performance.now() * 0.0005;
   if (material.uniforms && material.uniforms.resolution) {
     renderer.getSize(tmp);
     tmp.multiplyScalar(window.devicePixelRatio);
     material.uniforms.resolution.value.copy(tmp);
+
+    material.roughness = params.roughness;
+    material.metalness = params.metalness;
 
     material.uniforms.range.value.set(params.min, params.max);
     material.uniforms.range2.value.set(params.min2, params.max2);
@@ -153,6 +150,9 @@ scene.add(light2);
 
 const hemiLight = new HemisphereLight(0xbbbbbb, 0x080808, 1);
 scene.add(hemiLight);
+
+const ambientLight = new AmbientLight(0x202020);
+//scene.add(ambientLight);
 
 const spotLight = new PointLight(0xa183ff, 1);
 spotLight.castShadow = true;
