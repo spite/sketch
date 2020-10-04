@@ -89,9 +89,12 @@ const material = new CrossHatchMaterial({
 });
 
 initBackdrop(scene, material);
-//initTorus(scene, material);
-initBlob(scene, material);
+initTorus(scene, material);
+//initBlob(scene, material);
 initSpheres(scene, material);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.screenSpacePanning = true;
 
 const raycaster = new Raycaster();
 const mouse = new Vector2();
@@ -115,8 +118,6 @@ function resize() {
 
 const tmp = new Vector2();
 function render() {
-  // torus.rotation.y = performance.now() * 0.001;
-  // torus.rotation.z = performance.now() * 0.0005;
   if (material.uniforms && material.uniforms.resolution) {
     renderer.getSize(tmp);
     tmp.multiplyScalar(window.devicePixelRatio);
