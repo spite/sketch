@@ -128,8 +128,9 @@ class LineMaterial extends MeshStandardMaterial {
         vec3 coords = 50. * vCoords.xyy;
         vec3 qr = coords.xyz;
         vec3 line = texcube(2.0*fract(qr) - 1.0, vec3(1.), 1. * coords)*(1.-l);
-        vec3 inkColor = vec3(117.,207.,134.)/255.;
-        float r = aastep(.25*l, line.x);
+        vec3 inkColor = vec3(255.,0.,0.)/255.;
+        //inkColor *= .1;
+        float r = aastep(.5*l, line.x);
         gl_FragColor.rgb = blendColorBurn(paper.rgb, inkColor, 1.-r);
         //gl_FragColor.rgb = vec3(r);
         `
