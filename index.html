@@ -42,6 +42,7 @@
         height: 12.5vw;
         display: flex;
         position: relative;
+        font-size: 1vw;
       }
       a.card img {
         position: absolute;
@@ -57,11 +58,11 @@
         bottom: calc(50% - 1em);
         padding: 1em;
         line-height: 0;
-        font-size: 2vw;
         text-align: center;
         width: 100%;
         opacity: .25;
         text-shadow: 0 0 10px black;
+        transition: opacity 200ms ease-out;
       }
       a.card:hover h2 {
         opacity: 1;
@@ -70,12 +71,14 @@
         a.card {
           width: 50%;
           height: 25vw;
+          font-size: 2vw;
         }
       }
       @media screen and (max-width: 800px) {
         a.card {
           width: 100vw;
           height: 50vw;
+          font-size: 4vw;
         }
       }
     </style>
