@@ -14,7 +14,7 @@ class LineMaterial extends MeshStandardMaterial {
 
     this.onBeforeCompile = (shader, renderer) => {
       const loader = new TextureLoader();
-      const texture = loader.load("../assets/Craft_Rough.jpg");
+      const texture = loader.load("../assets/Craft_Light.jpg");
       const noiseTexture = loader.load("../assets/noise1.png");
       noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
       shader.uniforms.resolution = { value: new Vector2(1, 1) };
@@ -140,7 +140,7 @@ class LineMaterial extends MeshStandardMaterial {
         vec3 coords = .1 * vWorldPosition.xyz / vWorldPosition.w;
         float line = texcube(coords, vNormal, l);
 
-        vec3 inkColor = vec3(24., 49., 211.)/255.;
+        vec3 inkColor = vec3(20., 105., 10.)/255.;
         float r = aastep(1.-l, line);
 
         gl_FragColor.rgb = blendColorBurn(paper.rgb, inkColor, 1.-r);
