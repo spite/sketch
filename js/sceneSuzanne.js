@@ -52,7 +52,8 @@ async function loadSuzanne() {
   const modified = new SubdivisionModifier(3);
   const geo2 = new BufferGeometry().fromGeometry(modified.modify(geo));
   geo2.center();
-  geo2.applyMatrix4(new Matrix4().makeScale(5, 5, 5));
+  const scale = 5;
+  geo2.applyMatrix4(new Matrix4().makeScale(scale, scale, scale));
   return geo2;
 }
 

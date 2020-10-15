@@ -9,7 +9,7 @@ function init(scene, material) {
   const group = new Group();
 
   const torus = new Mesh(
-    new TorusKnotBufferGeometry(2, 0.5, 400, 50, 12, 3),
+    new TorusKnotBufferGeometry(2, 0.5, 400, 50, 2, 5),
     material
   );
   torus.castShadow = torus.receiveShadow = true;
