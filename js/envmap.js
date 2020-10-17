@@ -1,3 +1,5 @@
+// Manages cube maps.
+
 import {
   sRGBEncoding,
   CubeTextureLoader,
