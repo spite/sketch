@@ -1,30 +1,53 @@
 import {
   Group,
   Mesh,
-  IcosahedronBufferGeometry,
   TorusKnotBufferGeometry,
 } from "../third_party/three.module.js";
 
-function init(scene, material) {
-  const group = new Group();
+let torus;
+const group = new Group();
+let material;
 
-  const torus = new Mesh(
-    new TorusKnotBufferGeometry(2, 0.5, 400, 50, 2, 5),
+const params = {
+  q: 3,
+  r: 2,
+  radius: 2,
+  radius2: 0.5,
+};
+
+async function generate() {
+  if (torus) {
+    group.remove(torus);
+  }
+  torus = new Mesh(
+    new TorusKnotBufferGeometry(
+      params.radius,
+      params.radius2,
+      400,
+      50,
+      params.q,
+      params.r
+    ),
     material
   );
   torus.castShadow = torus.receiveShadow = true;
-  scene.add(torus);
-
-  torus.rotation.x = Math.random(2 * Math.PI);
-  torus.rotation.y = Math.random(2 * Math.PI);
-  torus.rotation.z = Math.random(2 * Math.PI);
-
-  return {
-    update: () => {
-      torus.rotation.y = performance.now() * 0.001;
-      torus.rotation.z = performance.now() * 0.0005;
-    },
-  };
+  group.add(torus);
 }
 
-export { init };
+const obj = {
+  init: async (m) => {
+    material = m;
+    await generate();
+  },
+  update: () => {},
+  group,
+  generate,
+  params: (gui) => {
+    gui.add(params, "q", 1, 10, 1).onChange(generate);
+    gui.add(params, "r", 1, 10, 1).onChange(generate);
+    gui.add(params, "radius", 1, 3).onChange(generate);
+    gui.add(params, "radius2", 0.1, 1).onChange(generate);
+  },
+};
+
+export { obj };

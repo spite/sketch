@@ -1,26 +1,35 @@
-import {
-  MeshStandardMaterial,
-  TextureLoader,
-  Vector2,
-  Vector3,
-} from "../third_party/three.module.js";
+import { MeshStandardMaterial, Vector2 } from "../third_party/three.module.js";
 import { lines } from "../shaders/lines.js";
 
 class ScreenSpaceSketchMaterial extends MeshStandardMaterial {
   constructor(options) {
     super(options);
-    const self = this;
+
+    this.params = {
+      roughness: 0.4,
+      metalness: 0.1,
+      min: 0.25,
+      max: 0.75,
+      min2: 0.5,
+      max2: 0.5,
+      scale: 1,
+      radius: 1,
+    };
+
+    this.uniforms = {
+      resolution: { value: new Vector2(1, 1) },
+      paperTexture: { value: null },
+      range: { value: new Vector2(this.params.min, this.params.max) },
+      range2: { value: new Vector2(this.params.min2, this.params.max2) },
+      scale: { value: this.params.scale },
+      radius: { value: this.params.radius },
+    };
 
     this.onBeforeCompile = (shader, renderer) => {
-      const loader = new TextureLoader();
-      const texture = loader.load("../assets/Watercolor_ColdPress.jpg");
-      shader.uniforms.resolution = { value: new Vector2(1, 1) };
-      shader.uniforms.paperTexture = { value: texture };
-      shader.uniforms.range = { value: new Vector2(0.25, 0.75) };
-      shader.uniforms.range2 = { value: new Vector2(0.5, 0.5) };
-      shader.uniforms.scale = { value: 1 };
-      shader.uniforms.radius = { value: 1 };
-      self.uniforms = shader.uniforms;
+      for (const uniformName of Object.keys(this.uniforms)) {
+        shader.uniforms[uniformName] = this.uniforms[uniformName];
+      }
+
       shader.fragmentShader = shader.fragmentShader.replace(
         `#include <common>`,
         `#include <common>
@@ -48,4 +57,28 @@ class ScreenSpaceSketchMaterial extends MeshStandardMaterial {
   }
 }
 
-export { ScreenSpaceSketchMaterial };
+function generateParams(gui, material) {
+  const params = material.params;
+  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
+  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  gui
+    .add(params, "min", 0, 2)
+    .onChange((v) => (material.uniforms.range.value.x = v));
+  gui
+    .add(params, "max", 0, 2)
+    .onChange((v) => (material.uniforms.range.value.y = v));
+  gui
+    .add(params, "min2", 0, 2)
+    .onChange((v) => (material.uniforms.range2.value.y = v));
+  gui
+    .add(params, "max2", 0, 2)
+    .onChange((v) => (material.uniforms.range2.value.y = v));
+  gui
+    .add(params, "scale", 0, 10)
+    .onChange((v) => (material.uniforms.scale.value = v));
+  gui
+    .add(params, "radius", 1, 10)
+    .onChange((v) => (material.uniforms.radius.value = v));
+}
+
+export { ScreenSpaceSketchMaterial, generateParams };

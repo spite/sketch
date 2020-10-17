@@ -1,30 +1,33 @@
 import {
   MeshStandardMaterial,
-  RepeatWrapping,
-  TextureLoader,
   Vector2,
-  Vector3,
+  Color,
 } from "../third_party/three.module.js";
 import { lines } from "../shaders/lines.js";
 
 class CrossHatchMaterial extends MeshStandardMaterial {
   constructor(options) {
     super(options);
-    const self = this;
+    
+    this.params = {
+      roughness: 0.2,
+      metalness: 0.1,
+      inkColor: 0xF313F2,
+      scale: 200,
+    };
+
+    this.uniforms = {
+      inkColor: {value: new Color(this.params.inkColor)},
+      resolution: { value: new Vector2(1, 1) },
+      paperTexture: { value: null },
+      scale: {value:this.params.scale}
+    }
 
     this.onBeforeCompile = (shader, renderer) => {
-      const loader = new TextureLoader();
-      const texture = loader.load("../assets/Craft_Light.jpg");
-      const noiseTexture = loader.load("../assets/noise1.png");
-      noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
-      shader.uniforms.resolution = { value: new Vector2(1, 1) };
-      shader.uniforms.paperTexture = { value: texture };
-      shader.uniforms.noiseTexture = { value: noiseTexture };
-      shader.uniforms.range = { value: new Vector2(0.25, 0.75) };
-      shader.uniforms.range2 = { value: new Vector2(0.5, 0.5) };
-      shader.uniforms.scale = { value: 1 };
-      shader.uniforms.radius = { value: 1 };
-      self.uniforms = shader.uniforms;
+      for (const uniformName of Object.keys(this.uniforms)) {
+        shader.uniforms[uniformName] = this.uniforms[uniformName];
+      }
+
       shader.vertexShader = shader.vertexShader.replace(
         `#include <common>`,
         `#include <common>
@@ -43,11 +46,8 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         `#include <common>
         uniform vec2 resolution;
         uniform sampler2D paperTexture;
-        uniform sampler2D noiseTexture;
-        uniform vec2 range;
-        uniform vec2 range2;
+        uniform vec3 inkColor;
         uniform float scale;
-        uniform float radius;
         in vec2 vCoords;
         in vec4 vWorldPosition;
         #define TAU 6.28318530718
@@ -102,9 +102,8 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         float l =  luma(gl_FragColor.rgb);
         ivec2 size = textureSize(paperTexture, 0);
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
-        vec3 coords = 200. * vWorldPosition.xyz / vWorldPosition.w;
+        vec3 coords = scale * vWorldPosition.xyz / vWorldPosition.w;
         float line = texcube(coords, vNormal, .5*l);
-        vec3 inkColor = vec3(243., 19., 242.)/255.;
         float r = aastep(l, line);
         gl_FragColor.rgb = blendColorBurn(paper.rgb, inkColor, r);
         `
@@ -113,4 +112,12 @@ class CrossHatchMaterial extends MeshStandardMaterial {
   }
 }
 
-export { CrossHatchMaterial };
+function generateParams(gui, material) {
+  const params = material.params;
+  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
+  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
+  gui.add(params, "scale", 10, 400,.1).onChange((v) => (material.uniforms.scale.value = v));
+}
+
+export { CrossHatchMaterial ,generateParams };

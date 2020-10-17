@@ -1,30 +1,32 @@
 import {
+  Color,
   MeshStandardMaterial,
-  RepeatWrapping,
-  TextureLoader,
   Vector2,
-  Vector3,
 } from "../third_party/three.module.js";
-import { lines } from "../shaders/lines.js";
 
 class LineMaterial extends MeshStandardMaterial {
   constructor(options) {
     super(options);
-    const self = this;
+
+    this.params = {
+      roughness: 0.4,
+      metalness: 0.1,
+      scale:50,
+      inkColor: 0xff0000,
+    };
+
+    this.uniforms = {
+      resolution: { value: new Vector2(1, 1) },
+      paperTexture: { value: null },
+      scale: { value: this.params.scale },
+      inkColor: { value: new Color(this.params.inkColor) },
+    };
 
     this.onBeforeCompile = (shader, renderer) => {
-      const loader = new TextureLoader();
-      const texture = loader.load("../assets/Craft_Rough.jpg");
-      const noiseTexture = loader.load("../assets/noise1.png");
-      noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
-      shader.uniforms.resolution = { value: new Vector2(1, 1) };
-      shader.uniforms.paperTexture = { value: texture };
-      shader.uniforms.noiseTexture = { value: noiseTexture };
-      shader.uniforms.range = { value: new Vector2(0.25, 0.75) };
-      shader.uniforms.range2 = { value: new Vector2(0.5, 0.5) };
-      shader.uniforms.scale = { value: 1 };
-      shader.uniforms.radius = { value: 1 };
-      self.uniforms = shader.uniforms;
+      for (const uniformName of Object.keys(this.uniforms)) {
+        shader.uniforms[uniformName] = this.uniforms[uniformName];
+      }
+
       shader.vertexShader = shader.vertexShader.replace(
         `#include <common>`,
         `#include <common>
@@ -44,10 +46,8 @@ class LineMaterial extends MeshStandardMaterial {
         uniform vec2 resolution;
         uniform sampler2D paperTexture;
         uniform sampler2D noiseTexture;
-        uniform vec2 range;
-        uniform vec2 range2;
+        uniform vec3 inkColor;
         uniform float scale;
-        uniform float radius;
         in vec2 vCoords;
         in vec4 vWorldPosition;
         #define TAU 6.28318530718
@@ -125,18 +125,23 @@ class LineMaterial extends MeshStandardMaterial {
         float l = 1.-luma(gl_FragColor.rgb);
         ivec2 size = textureSize(paperTexture, 0);
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
-        vec3 coords = 50. * vCoords.xyy;
+        vec3 coords = scale * vCoords.xyy;
         vec3 qr = coords.xyz;
         vec3 line = texcube(2.0*fract(qr) - 1.0, vec3(1.), 1. * coords)*(1.-l);
-        vec3 inkColor = vec3(255.,0.,0.)/255.;
-        //inkColor *= .1;
         float r = aastep(.5*l, line.x);
         gl_FragColor.rgb = blendColorBurn(paper.rgb, inkColor, 1.-r);
-        //gl_FragColor.rgb = vec3(r);
         `
       );
     };
   }
 }
 
-export { LineMaterial };
+function generateParams(gui, material) {
+  const params = material.params;
+  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
+  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
+  gui.add(params, "scale", 10, 100,.01).onChange((v) => (material.uniforms.scale.value = v));
+}
+
+export { LineMaterial, generateParams };

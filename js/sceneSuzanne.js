@@ -8,6 +8,12 @@ import {
   BufferAttribute,
 } from "../third_party/three.module.js";
 
+let suzanne;
+const group = new Group();
+let material;
+
+const params = {};
+
 function mergeMesh(mesh) {
   let count = 0;
   mesh.traverse((m) => {
@@ -52,21 +58,30 @@ async function loadSuzanne() {
   const modified = new SubdivisionModifier(3);
   const geo2 = new BufferGeometry().fromGeometry(modified.modify(geo));
   geo2.center();
-  const scale = 5;
+  const scale = 3;
   geo2.applyMatrix4(new Matrix4().makeScale(scale, scale, scale));
   return geo2;
 }
 
-async function init(scene, material) {
-  const group = new Group();
+async function generate() {
+  if (suzanne) {
+    group.remove(suzanne);
+  }
   const geo = await loadSuzanne();
-
-  const suzanne = new Mesh(geo, material);
+  suzanne = new Mesh(geo, material);
   suzanne.castShadow = suzanne.receiveShadow = true;
-  scene.add(suzanne);
-
-  return {
-    update: () => {},
-  };
+  group.add(suzanne);
 }
-export { init };
+
+const obj = {
+  init: async (m, q, r) => {
+    material = m;
+    await generate();
+  },
+  update: () => {},
+  group,
+  generate: () => generate(material),
+  params: (gui) => {},
+};
+
+export { obj };

@@ -3,7 +3,7 @@ import {
   RepeatWrapping,
   TextureLoader,
   Vector2,
-  Vector3,
+  Color,
 } from "../third_party/three.module.js";
 import { lines } from "../shaders/lines.js";
 
@@ -16,14 +16,21 @@ class LineMaterial extends MeshStandardMaterial {
     const noiseTexture = loader.load("../assets/noise2.png");
     noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
 
+    this.params = {
+      roughness: 0.4,
+      metalness: 0.1,
+      scale: 200,
+      inkColor: 0xD94A4A,
+      e: .4
+    };
+    
     this.uniforms = {
       resolution: { value: new Vector2(1, 1) },
       paperTexture: { value: texture },
       noiseTexture: { value: noiseTexture },
-      range: { value: new Vector2(0.25, 0.75) },
-      range2: { value: new Vector2(0.5, 0.5) },
-      scale: { value: 1 },
-      radius: { value: 1 },
+      inkColor: { value: new Color(this.params.inkColor)},
+      scale: { value: this.params.scale },
+      e: { value: this.params.e },
     };
 
     this.onBeforeCompile = (shader, renderer) => {
@@ -50,10 +57,9 @@ class LineMaterial extends MeshStandardMaterial {
         uniform vec2 resolution;
         uniform sampler2D paperTexture;
         uniform sampler2D noiseTexture;
-        uniform vec2 range;
-        uniform vec2 range2;
+        uniform vec3 inkColor;
         uniform float scale;
-        uniform float radius;
+        uniform float e;
         in vec2 vCoords;
         in vec4 vWorldPosition;
         #define TAU 6.28318530718
@@ -81,27 +87,20 @@ class LineMaterial extends MeshStandardMaterial {
         }
 
 
-        float htPattern(vec2 pos,  float v)
+        float htPattern(vec2 pos, float v)
         {
           int lnum = 10;//100 - int(round(v * 5.)/5.)*10;
             float p;
-            float sc = 1.;
             float b0= v;
             float bq=quantize(b0,lnum);
             float b=bq*float(lnum);
             float db=b0*float(lnum)-b;
             float d=1.;
-            //if(iMouse.y==0.) d=1.2;
             d*=1.*(1.-(b+.3*float(lnum))/1.3/float(lnum));
             float ang=-(float(lnum-1)-b-.5+.0)/float(lnum)/**3.121*/*PI;
             vec2 dir = vec2(cos(ang),sin(ang));
             vec2 dir2 = vec2(cos(ang*3.),sin(ang*3.));
-            
-            float s;
-            
             float l=length(pos+getRand(pos).xy*0.-resolution.xy*.5-dir2*resolution.y*.4)*d;
-        
-            // lines equally thick - just get closer for darker regions
             p = 1.-1.7*exp(-cos(l)*cos(l)*1./d/d);
             return p;
         }
@@ -136,9 +135,8 @@ class LineMaterial extends MeshStandardMaterial {
         float l = 1.2 * luma(gl_FragColor.rgb);
         ivec2 size = textureSize(paperTexture, 0);
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
-        vec3 coords = 200. * vWorldPosition.xyz/ vWorldPosition.w;
+        vec3 coords = scale * vWorldPosition.xyz/ vWorldPosition.w;
         float line = texcube(coords, vNormal, l);
-        vec3 inkColor = vec3(217., 74., 74.)/255.;
         float r = aastep(-.25+1.-l, line);
         gl_FragColor.rgb = blendColorBurn(paper.rgb, inkColor, 1.-r);
 
@@ -148,4 +146,14 @@ class LineMaterial extends MeshStandardMaterial {
   }
 }
 
-export { LineMaterial };
+function generateParams(gui, material) {
+  const params = material.params;
+  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
+  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
+  gui.add(params, "scale", 50, 400, .1).onChange((v) => (material.uniforms.scale.value = v));
+  gui.add(params, "e", 0, 1,.001).onChange((v) => (material.uniforms.e.value = v));
+}
+
+export { LineMaterial, generateParams };
+

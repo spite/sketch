@@ -1,30 +1,36 @@
 import {
   MeshStandardMaterial,
-  RepeatWrapping,
-  TextureLoader,
   Vector2,
-  Vector3,
+  Color,
 } from "../third_party/three.module.js";
-import { lines } from "../shaders/lines.js";
 
 class LineMaterial extends MeshStandardMaterial {
   constructor(options) {
     super(options);
-    const self = this;
+
+    this.params = {
+      roughness: 0.4,
+      metalness: 0.1,
+      scale: .1,
+      inkColor: 0x14690A,
+      factor: 1.1,
+      e: .4
+    };
+
+    this.uniforms = {
+      resolution: { value: new Vector2(1, 1) },
+      paperTexture: { value: null },
+      scale: { value: this.params.scale },
+      inkColor: { value: new Color(this.params.inkColor) },
+      factor: { value: this.params.factor},
+      e: { value: this.params.e}
+    };
 
     this.onBeforeCompile = (shader, renderer) => {
-      const loader = new TextureLoader();
-      const texture = loader.load("../assets/Craft_Light.jpg");
-      const noiseTexture = loader.load("../assets/noise1.png");
-      noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
-      shader.uniforms.resolution = { value: new Vector2(1, 1) };
-      shader.uniforms.paperTexture = { value: texture };
-      shader.uniforms.noiseTexture = { value: noiseTexture };
-      shader.uniforms.range = { value: new Vector2(0.25, 0.75) };
-      shader.uniforms.range2 = { value: new Vector2(0.5, 0.5) };
-      shader.uniforms.scale = { value: 1 };
-      shader.uniforms.radius = { value: 1 };
-      self.uniforms = shader.uniforms;
+      for (const uniformName of Object.keys(this.uniforms)) {
+        shader.uniforms[uniformName] = this.uniforms[uniformName];
+      }
+
       shader.vertexShader = shader.vertexShader.replace(
         `#include <common>`,
         `#include <common>
@@ -45,11 +51,10 @@ class LineMaterial extends MeshStandardMaterial {
         `#include <common>
         uniform vec2 resolution;
         uniform sampler2D paperTexture;
-        uniform sampler2D noiseTexture;
-        uniform vec2 range;
-        uniform vec2 range2;
+        uniform vec3 inkColor;
+        uniform float factor;
         uniform float scale;
-        uniform float radius;
+        uniform float e;
         in vec2 vCoords;
         in vec3 vPosition;
         in vec4 vWorldPosition;
@@ -96,7 +101,7 @@ class LineMaterial extends MeshStandardMaterial {
           uv -= tile * tileSize;
           float dist = length(tileCenter - uv) + warp(uv);
           float circle = .5 + .5 * cos(dist * 1000. + 100. * warp(uv.yx));      
-          return aastep(.4, circle+q);
+          return aastep(e, circle+q);
         }
 
         /////////
@@ -105,7 +110,7 @@ class LineMaterial extends MeshStandardMaterial {
           //p = .05 * vec3(warp(p.xy), warp(p.xy), warp(p.xy));
           vec3 v = vec3(scribble(p.yz,q), scribble(p.zx,q), scribble(p.xy,q));
           //p = 1. * vec3(warp(p.xy), warp(p.xy), warp(p.xy));
-          p *= 1.1;
+          p *= factor;
           vec3 v2 = vec3(scribble(p.yz,q), scribble(p.zx,q), scribble(p.xy,q));
           v *= v2;
           return dot(v, n*n);
@@ -137,10 +142,9 @@ class LineMaterial extends MeshStandardMaterial {
         ivec2 size = textureSize(paperTexture, 0);
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
 
-        vec3 coords = .1 * vWorldPosition.xyz / vWorldPosition.w;
+        vec3 coords = scale * vWorldPosition.xyz / vWorldPosition.w;
         float line = texcube(coords, vNormal, l);
 
-        vec3 inkColor = vec3(20., 105., 10.)/255.;
         float r = aastep(1.-l, line);
 
         gl_FragColor.rgb = blendColorBurn(paper.rgb, inkColor, 1.-r);
@@ -151,4 +155,14 @@ class LineMaterial extends MeshStandardMaterial {
   }
 }
 
-export { LineMaterial };
+function generateParams(gui, material) {
+  const params = material.params;
+  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
+  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
+  gui.add(params, "scale", .05, .2  ,.001).onChange((v) => (material.uniforms.scale.value = v));
+  gui.add(params, "factor", .5, 1.5,.001).onChange((v) => (material.uniforms.factor.value = v));
+  gui.add(params, "e", 0, 1,.001).onChange((v) => (material.uniforms.e.value = v));
+}
+
+export { LineMaterial, generateParams };

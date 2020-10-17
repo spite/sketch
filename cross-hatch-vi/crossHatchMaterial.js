@@ -3,28 +3,39 @@ import {
   RepeatWrapping,
   TextureLoader,
   Vector2,
-  Vector3,
+  Color,
 } from "../third_party/three.module.js";
-import { lines } from "../shaders/lines.js";
 
 class CrossHatchMaterial extends MeshStandardMaterial {
   constructor(options) {
     super(options);
-    const self = this;
+    
+    const loader = new TextureLoader();
+    const noiseTexture = loader.load("../assets/noise1.png");
+    noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
+
+    this.params = {
+      roughness: 0.2,
+      metalness: 0.1,
+      inkColor: 0x2036FF,
+      scale: 50,
+      width: 2
+    };
+
+    this.uniforms = {
+      inkColor: {value: new Color(this.params.inkColor)},
+      resolution: { value: new Vector2(1, 1) },
+      paperTexture: { value: null },
+      noiseTexture: { value: noiseTexture },
+      width: {value: this.params.width},
+      scale: {value: this.params.scale}
+    }
 
     this.onBeforeCompile = (shader, renderer) => {
-      const loader = new TextureLoader();
-      const texture = loader.load("../assets/Craft_Rough.jpg");
-      const noiseTexture = loader.load("../assets/noise1.png");
-      noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
-      shader.uniforms.resolution = { value: new Vector2(1, 1) };
-      shader.uniforms.paperTexture = { value: texture };
-      shader.uniforms.noiseTexture = { value: noiseTexture };
-      shader.uniforms.range = { value: new Vector2(0.25, 0.75) };
-      shader.uniforms.range2 = { value: new Vector2(0.5, 0.5) };
-      shader.uniforms.scale = { value: 1 };
-      shader.uniforms.radius = { value: 1 };
-      self.uniforms = shader.uniforms;
+      for (const uniformName of Object.keys(this.uniforms)) {
+        shader.uniforms[uniformName] = this.uniforms[uniformName];
+      }
+
       shader.vertexShader = shader.vertexShader.replace(
         `#include <common>`,
         `#include <common>
@@ -44,10 +55,9 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         uniform vec2 resolution;
         uniform sampler2D paperTexture;
         uniform sampler2D noiseTexture;
-        uniform vec2 range;
-        uniform vec2 range2;
         uniform float scale;
-        uniform float radius;
+        uniform float width;
+        uniform vec3 inkColor;
         in vec2 vCoords;
         in vec4 vWorldPosition;
         #define TAU 6.28318530718
@@ -55,7 +65,7 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         float noise( in vec2 x ){return texture(noiseTexture, x*.01).x;}
         
         float texh(in vec2 p, in float lum) {
-          float e = 2. * length(vec2(dFdx(p.x), dFdy(p.y))); 
+          float e = width * length(vec2(dFdx(p.x), dFdy(p.y))); 
           if (lum < 1.00) {
             float v = abs(mod(p.x + p.y, 10.0));
             if (v < e) {
@@ -139,10 +149,8 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         float l = 2. * luma(gl_FragColor.rgb);
         ivec2 size = textureSize(paperTexture, 0);
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
-        vec3 coords = 50.*vWorldPosition.xyz;//*vec3(resolution, 1.); 
-       float line = texcube(coords.xyz, vNormal, l, TAU/16.);
-        vec3 inkColor = vec3(32., 54., 255.)/255.;
-        float e = .01;
+        vec3 coords = scale*vWorldPosition.xyz;//*vec3(resolution, 1.); 
+        float line = texcube(coords.xyz, vNormal, l, TAU/16.);
         float r = line;//1. - smoothstep(l-e, l+e, line);
         gl_FragColor.rgb = blendDarken(paper.rgb, inkColor,  1.-r);
         //gl_FragColor.rgb  = vec3(line);
@@ -152,4 +160,14 @@ class CrossHatchMaterial extends MeshStandardMaterial {
   }
 }
 
-export { CrossHatchMaterial };
+function generateParams(gui, material) {
+  const params = material.params;
+  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
+  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
+  gui.add(params, "scale", 10, 100,.1).onChange((v) => (material.uniforms.scale.value = v));
+  gui.add(params, "width", 0, 10,.01).onChange((v) => (material.uniforms.width.value = v));
+}
+
+export { CrossHatchMaterial, generateParams };
+

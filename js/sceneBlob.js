@@ -7,29 +7,61 @@ import {
 } from "../third_party/three.module.js";
 import perlin from "../third_party/perlin.js";
 
-function init(scene, material) {
-  const group = new Group();
+let blob;
+const group = new Group();
+let material;
+const geo = new IcosahedronGeometry(1, 5);
 
-  const geo = new IcosahedronGeometry(3, 5);
+const params = {
+  scale: 1,
+  noise: 1,
+};
+
+async function generate() {
+  if (blob) {
+    group.remove(blob);
+  }
+
   const v = new Vector3();
   const vertices = geo.vertices;
   for (let j = 0; j < vertices.length; j++) {
     v.copy(vertices[j]);
-    v.multiplyScalar(0.5);
-    const n = 1.25 + 0.25 * perlin.simplex3(v.x, v.y, v.z);
+    v.normalize();
+    const n =
+      1 +
+      params.scale +
+      params.scale *
+        perlin.simplex3(
+          params.noise * v.x,
+          params.noise * v.y,
+          params.noise * v.z
+        );
     v.multiplyScalar(n);
     vertices[j].copy(v);
   }
   geo.computeVertexNormals();
   geo.computeFaceNormals();
 
-  const blob = new Mesh(new BufferGeometry().fromGeometry(geo), material);
-  blob.castShadow = blob.receiveShadow = true;
-  scene.add(blob);
+  blob = new Mesh(new BufferGeometry().fromGeometry(geo), material);
 
-  return {
-    update: () => {},
-  };
+  blob.castShadow = blob.receiveShadow = true;
+  group.add(blob);
 }
 
-export { init };
+const obj = {
+  init: async (m, q, r) => {
+    material = m;
+    params.q = q || params.q;
+    params.r = r || params.r;
+    await generate();
+  },
+  update: () => {},
+  group,
+  generate: () => generate(material),
+  params: (gui) => {
+    gui.add(params, "scale", 0.1, 2, 0.1).onChange(generate);
+    gui.add(params, "noise", 0.1, 2, 0.1).onChange(generate);
+  },
+};
+
+export { obj };
