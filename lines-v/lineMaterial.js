@@ -12,14 +12,14 @@ class LineMaterial extends MeshStandardMaterial {
     this.params = {
       roughness: 0.4,
       metalness: 0.1,
-      scale: .5,
+      scale: 1.,
       inkColor: 0x87B41F,
       e: .5,
       angle: Math.PI/4,
-      thickness: .1,
+      thickness: .7,
       min: 0,
       max: 1,
-      rim: 1,
+      rim: .45,
     };
 
     this.uniforms = {
