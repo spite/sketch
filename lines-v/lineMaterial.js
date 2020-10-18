@@ -14,7 +14,6 @@ class LineMaterial extends MeshStandardMaterial {
       metalness: 0.1,
       scale: 1.,
       inkColor: 0x87B41F,
-      e: .5,
       angle: Math.PI/4,
       thickness: .7,
       min: 0,
@@ -26,7 +25,6 @@ class LineMaterial extends MeshStandardMaterial {
       resolution: { value: new Vector2(1, 1) },
       paperTexture: { value: null },
       scale: { value: this.params.scale },
-      e: { value: this.params.e },
       angle: { value: this.params.angle },
       thickness: { value: this.params.thickness },
       inkColor: { value: new Color(this.params.inkColor) },
@@ -59,7 +57,6 @@ class LineMaterial extends MeshStandardMaterial {
         uniform sampler2D paperTexture;
         uniform float scale;
         uniform vec3 inkColor;
-        uniform float e;
         uniform float thickness;
         uniform vec2 range;
         uniform float angle;
@@ -252,7 +249,6 @@ function generateParams(gui, material) {
   gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
   gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
   gui.add(params, "scale", .1, 3,.001).onChange((v) => (material.uniforms.scale.value = v));
-  gui.add(params, "e", 0, 1,.001).onChange((v) => (material.uniforms.e.value = v));
   gui.add(params, "angle", 0, Math.PI,.001).onChange((v) => (material.uniforms.angle.value = v));
   gui.add(params, "thickness", 0, 1,.001).onChange((v) => (material.uniforms.thickness.value = v));
   gui.add(params, "min", 0, 1,.001).onChange((v) => (material.uniforms.range.value.x = v));
