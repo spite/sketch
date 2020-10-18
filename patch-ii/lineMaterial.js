@@ -5,7 +5,6 @@ import {
   Vector2,
   Color,
 } from "../third_party/three.module.js";
-import { lines } from "../shaders/lines.js";
 
 class LineMaterial extends MeshStandardMaterial {
   constructor(options) {
@@ -30,7 +29,6 @@ class LineMaterial extends MeshStandardMaterial {
       noiseTexture: { value: noiseTexture },
       inkColor: { value: new Color(this.params.inkColor)},
       scale: { value: this.params.scale },
-      e: { value: this.params.e },
     };
 
     this.onBeforeCompile = (shader, renderer) => {
@@ -152,7 +150,6 @@ function generateParams(gui, material) {
   gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
   gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
   gui.add(params, "scale", 50, 400, .1).onChange((v) => (material.uniforms.scale.value = v));
-  gui.add(params, "e", 0, 1,.001).onChange((v) => (material.uniforms.e.value = v));
 }
 
 export { LineMaterial, generateParams };
