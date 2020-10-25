@@ -24,7 +24,6 @@ postController["paper"].setValue("Parchment");
 const envMapController = generateEnvParams(materialFolder, material);
 envMapController.setValue("bridge");
 
-const tmp = new Vector2();
 function render() {
   post.render(scene, camera);
   renderer.setAnimationLoop(render);
