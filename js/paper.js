@@ -1,4 +1,4 @@
-import { TextureLoader } from "../third_party/three.module.js";
+import { RepeatWrapping, TextureLoader } from "../third_party/three.module.js";
 
 const loader = new TextureLoader();
 
@@ -20,6 +20,7 @@ async function getTexture(name) {
   if (!papers[name].promise) {
     papers[name].promise = new Promise((resolve, reject) => {
       loader.load(`../assets/${papers[name].file}`, (res) => {
+        res.wrapS = res.wrapT = RepeatWrapping;
         papers[name].texture = res;
         resolve();
       });
