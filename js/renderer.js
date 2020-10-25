@@ -31,6 +31,12 @@ camera.position.set(5, 5, 5);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.screenSpacePanning = true;
 
+const resizeFns = [];
+
+function onResize(fn) {
+  resizeFns.push(fn);
+}
+
 function resize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -38,8 +44,11 @@ function resize() {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
+  for (const fn of resizeFns) {
+    fn();
+  }
 }
 
 window.addEventListener("resize", resize);
 
-export { renderer, scene, camera, resize };
+export { renderer, scene, camera, resize, onResize };
