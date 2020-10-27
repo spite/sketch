@@ -31,10 +31,8 @@ uniform sampler2D noiseTexture;
 uniform vec3 inkColor;
 uniform float scale;
 uniform float thickness;
-uniform float intensity;
 uniform float noisiness;
 uniform float angle;
-uniform float blob;
 
 out vec4 fragColor;
 
@@ -47,46 +45,6 @@ ${luma}
 ${aastep}
 
 ${darken}
-
-float stripe(in vec2 uv, in float freq) {
-  float v = .5 + .5 * sin(.05*uv.y * freq);
-  return smoothstep(0., thickness, v);
-}
-
-// from https://www.shadertoy.com/view/4llSDH
-
-vec2 distortUV(in vec2 uv, in vec2 nUV, in float scale, in float offset) {
-  vec2 noise= texture(noiseTexture, nUV*scale+vec2(offset, 0.)).xy;
-  uv += (-1.0+noise*2.0) * intensity;
-  return uv;
-}
-
-vec2 warpUv(in vec2 uv, in float scale, in float offset) {
-  vec2 nUV = uv;
-  vec2 ruv = uv;
-
-	ruv = distortUV(ruv, nUV, scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.1,nUV.y+0.1), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.2,nUV.y+0.2), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.3,nUV.y+0.3), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.4,nUV.y+0.4), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.5,nUV.y+0.5), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.6,nUV.y+0.6), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.7,nUV.y+0.7), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.8,nUV.y+0.8), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.9,nUV.y+0.9), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.15,nUV.y+0.15), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.25,nUV.y+0.25), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.35,nUV.y+0.35), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.45,nUV.y+0.45), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.55,nUV.y+0.55), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.65,nUV.y+0.65), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.75,nUV.y+0.75), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.85,nUV.y+0.85), scale, offset);
-  ruv = distortUV(ruv, vec2(nUV.x+0.95,nUV.y+0.95), scale, offset);
-
-  return ruv;
-}
 
 #define TAU 6.28318530718
 
@@ -193,7 +151,7 @@ void main() {
 
     if(l<.5) {
 
-      float a = mix(0., 3.2 * TAU, l);
+      float a = angle + mix(0., 3.2 * TAU, l);
       float s = sin(a);
       float c = cos(a);
       mat2 rot = mat2(c, -s, s, c);
@@ -236,13 +194,11 @@ class Post {
     this.colorFBO = getFBO(1, 1);
     this.normalFBO = getFBO(1, 1);
     this.params = {
-      scale: 1,
-      angle: 0.4,
-      thickness: 1,
-      intensity: 0.0005,
-      noisiness: 0.005,
-      inkColor: new Color(133, 106, 255),
-      blob: 0.01,
+      scale: 0.5,
+      angle: 0,
+      thickness: 0.7,
+      noisiness: 0.02,
+      inkColor: new Color(18, 119, 140),
     };
     const shader = new RawShaderMaterial({
       uniforms: {
@@ -253,10 +209,8 @@ class Post {
         inkColor: { value: this.params.inkColor },
         scale: { value: this.params.scale },
         thickness: { value: this.params.thickness },
-        intensity: { value: this.params.intensity },
         noisiness: { value: this.params.noisiness },
         angle: { value: this.params.angle },
-        blob: { value: this.params.blob },
       },
       vertexShader: orthoVs,
       fragmentShader,
@@ -284,28 +238,18 @@ class Post {
 
   generateParams(gui) {
     const controllers = {};
-    // controllers["intensity"] = gui
-    //   .add(this.params, "intensity", 0.0001, 0.01)
-    //   .onChange(async (v) => {
-    //     this.renderPass.shader.uniforms.intensity.value = v;
-    //   });
     controllers["scale"] = gui
       .add(this.params, "scale", 0.1, 1)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.scale.value = v;
       });
-    // controllers["blob"] = gui
-    //   .add(this.params, "blob", 0.000001, 1)
-    //   .onChange(async (v) => {
-    //     this.renderPass.shader.uniforms.blob.value = v;
-    //   });
     controllers["thickness"] = gui
       .add(this.params, "thickness", 0.5, 5)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.thickness.value = v;
       });
     controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0, 0.1)
+      .add(this.params, "noisiness", 0, 0.02)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.noisiness.value = v;
       });
