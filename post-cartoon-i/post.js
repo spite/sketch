@@ -194,10 +194,10 @@ class Post {
     this.colorFBO = getFBO(1, 1);
     this.normalFBO = getFBO(1, 1);
     this.params = {
-      scale: 0.5,
+      scale: 0.72,
       angle: 0,
       thickness: 0.7,
-      noisiness: 0.02,
+      noisiness: 0.007,
       inkColor: new Color(18, 119, 140),
     };
     const shader = new RawShaderMaterial({
