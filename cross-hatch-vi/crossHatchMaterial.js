@@ -9,7 +9,7 @@ import {
 class CrossHatchMaterial extends MeshStandardMaterial {
   constructor(options) {
     super(options);
-    
+
     const loader = new TextureLoader();
     const noiseTexture = loader.load("../assets/noise1.png");
     noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
@@ -17,19 +17,19 @@ class CrossHatchMaterial extends MeshStandardMaterial {
     this.params = {
       roughness: 0.2,
       metalness: 0.1,
-      inkColor: 0x2036FF,
+      inkColor: 0x2036ff,
       scale: 50,
-      width: 2
+      width: 2,
     };
 
     this.uniforms = {
-      inkColor: {value: new Color(this.params.inkColor)},
+      inkColor: { value: new Color(this.params.inkColor) },
       resolution: { value: new Vector2(1, 1) },
       paperTexture: { value: null },
       noiseTexture: { value: noiseTexture },
-      width: {value: this.params.width},
-      scale: {value: this.params.scale}
-    }
+      width: { value: this.params.width },
+      scale: { value: this.params.scale },
+    };
 
     this.onBeforeCompile = (shader, renderer) => {
       for (const uniformName of Object.keys(this.uniforms)) {
@@ -164,10 +164,15 @@ function generateParams(gui, material) {
   const params = material.params;
   gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
   gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
-  gui.add(params, "scale", 10, 100,.1).onChange((v) => (material.uniforms.scale.value = v));
-  gui.add(params, "width", 0, 10,.01).onChange((v) => (material.uniforms.width.value = v));
+  gui
+    .addColor(params, "inkColor")
+    .onChange((v) => material.uniforms.inkColor.value.set(v));
+  gui
+    .add(params, "scale", 10, 100, 0.1)
+    .onChange((v) => (material.uniforms.scale.value = v));
+  gui
+    .add(params, "width", 0, 10, 0.01)
+    .onChange((v) => (material.uniforms.width.value = v));
 }
 
 export { CrossHatchMaterial, generateParams };
-
