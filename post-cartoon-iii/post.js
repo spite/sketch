@@ -3,8 +3,6 @@ import {
   DoubleSide,
   MeshNormalMaterial,
   RawShaderMaterial,
-  TextureLoader,
-  RepeatWrapping,
 } from "../third_party/three.module.js";
 import { ShaderPass } from "../js/ShaderPass.js";
 import { getFBO } from "../js/FBO.js";
@@ -14,12 +12,9 @@ import { shader as aastep } from "../shaders/aastep.js";
 import { shader as luma } from "../shaders/luma.js";
 import { generateParams as generatePaperParams } from "../js/paper.js";
 import { shader as darken } from "../shaders/blend-darken.js";
+import { shader as screen } from "../shaders/blend-screen.js";
 
 const normalMat = new MeshNormalMaterial({ side: DoubleSide });
-
-const loader = new TextureLoader();
-const noiseTexture = loader.load("../assets/noise1.png");
-noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
 
 const fragmentShader = `#version 300 es
 precision highp float;
@@ -27,18 +22,14 @@ precision highp float;
 uniform sampler2D colorTexture;
 uniform sampler2D normalTexture;
 uniform sampler2D paperTexture;
-uniform sampler2D noiseTexture;
-
 uniform vec3 inkColor;
 uniform float scale;
-uniform float noiseScale;
-uniform float noisiness;
 uniform float thickness;
 uniform float contour;
-uniform float cyan;
-uniform float magenta;
-uniform float yellow;
-uniform float black;
+uniform float boost;
+uniform float dark;
+uniform float mid;
+uniform float light;
 
 out vec4 fragColor;
 
@@ -51,30 +42,9 @@ ${luma}
 ${aastep}
 
 ${darken}
+${screen}
 
 #define mul(a,b) (b*a)
-
-float simplex(in vec3 v) {
-  return 2. * texture(noiseTexture, v.xy/32.).r - 1.;
-}
-
-float fbm3(vec3 v) {
-  float result = simplex(v);
-  result += simplex(v * 2.) / 2.;
-  result += simplex(v * 4.) / 4.;
-  result /= (1. + 1./2. + 1./4.);
-  return result;
-}
-
-float fbm5(vec3 v) {
-  float result = simplex(v);
-  result += simplex(v * 2.) / 2.;
-  result += simplex(v * 4.) / 4.;
-  result += simplex(v * 8.) / 8.;
-  result += simplex(v * 16.) / 16.;
-  result /= (1. + 1./2. + 1./4. + 1./8. + 1./16.);
-  return result;
-}
 
 // adapted from https://github.com/libretro/glsl-shaders/blob/master/misc/cmyk-halftone-dot.glsl
 
@@ -102,35 +72,68 @@ vec2 rot(in vec2 uv, in float a) {
 void main() {
   vec2 size = vec2(textureSize(colorTexture, 0));
   float e = .01;
-
   vec4 color = texture(colorTexture, vUv);
-  float l = 2. * luma(color.rgb);
   float normalEdge = 1.- length(sobel(normalTexture, vUv, size, contour));
   normalEdge = smoothstep(.5-thickness, .5+thickness, normalEdge);
   vec4 paper = texture(paperTexture, .00025 * vUv*size);
   
-  color *= normalEdge;
+  color.rgb = boost * blendDarken(color.rgb, vec3(0.), .5-normalEdge);
+  float l = luma(color.rgb);
 
-  vec4 cmyk;
-	cmyk.xyz = .5 - .5 * color.rgb;
-	cmyk.w = min(cmyk.x, min(cmyk.y, cmyk.z)); // Create K
+  vec3 rgbscreen = color.rgb;
 
-  float frequency = .05;
+  if(l<dark) {
+    vec2 uv = scale * vUv;
+    float k = lines(l/dark, rot(uv, 45.), size, thickness);
+    rgbscreen = mix(rgbscreen, mix(rgbscreen, inkColor/255., .5), 1.-k);
+  } 
 
-  vec2 uv = scale * vUv;
-  vec2 offset = noisiness * vec2(fbm3(vec3(noiseScale*uv,1.)), fbm3(vec3(noiseScale*uv.yx,1.)));
-  uv += offset;
+  if(l<mid) {
+    vec2 uv = scale * vUv;
+    float k = lines(l/mid, rot(uv, 15.), size, thickness);
+    rgbscreen = mix(rgbscreen, mix(rgbscreen, inkColor/255., .5), 1.-k);
+  } 
+  
+  if(l>light){
+    vec2 uv = vUv * size;
+    float frequency = .05;
 
-  float c = lines(cmyk.x, rot(uv, 75.), size, thickness * cyan);
-  float m = lines(cmyk.y, rot(uv, 15.), size, thickness * magenta);
-  float y = lines(cmyk.z, rot(uv, 0.), size, thickness * yellow);
-  float k = lines(cmyk.w, rot(uv, 45.), size, thickness * black);
-
-  vec3 rgbscreen = 1.0 - vec3(c,m,y);
-  rgbscreen = mix(rgbscreen, inkColor/255., k);
+    float w = mix(0., 1., thickness);
+    mat2 k_matrix = mat2(0.707, 0.707, -0.707, 0.707);
+    vec2 Kst = frequency * scale * mul(k_matrix , uv);
+    vec2 Kuv = w * (2. * fract(Kst) - 1.);
+    float k = step(0.0, sqrt(l-light) - length(Kuv));
+    
+    rgbscreen = blendScreen(rgbscreen, vec3(1.), k);
+  }
 
   fragColor.rgb = blendDarken(paper.rgb, rgbscreen, 1.);
   fragColor.a = 1.;
+}
+`;
+
+const finalFragmentShader = `#version 300 es
+precision highp float;
+
+uniform sampler2D colorTexture;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+void main() {
+  vec2 dir = vUv - vec2( .5 );
+	float d = .7 * length( dir );
+  normalize( dir );
+  float delta = 100.;
+	vec2 value = d * dir * delta;
+  vec2 resolution = vec2(textureSize(colorTexture, 0));
+
+	vec4 c1 = texture(colorTexture, vUv - value / resolution.x );
+	vec4 c2 = texture(colorTexture, vUv );
+	vec4 c3 = texture(colorTexture, vUv + value / resolution.y );
+	
+  fragColor = vec4( c1.r, c2.g, c3.b, c1.a + c2.a + c3.b );
 }
 `;
 
@@ -140,16 +143,14 @@ class Post {
     this.colorFBO = getFBO(1, 1);
     this.normalFBO = getFBO(1, 1);
     this.params = {
-      scale: 1.25,
-      noiseScale: 0.05,
-      noisiness: 0.2,
+      scale: 1.5,
+      boost: 1.1,
       thickness: 1,
-      contour: 1,
-      inkColor: new Color(0, 0, 0),
-      cyan: 1,
-      magenta: 0.9,
-      yellow: 0.8,
-      black: 0.2,
+      contour: 4,
+      inkColor: new Color(64, 43, 43),
+      dark: 0.86,
+      mid: 0.62,
+      light: 0.62,
     };
     const shader = new RawShaderMaterial({
       uniforms: {
@@ -157,27 +158,34 @@ class Post {
         colorTexture: { value: this.colorFBO.texture },
         normalTexture: { value: this.normalFBO.texture },
         inkColor: { value: this.params.inkColor },
+        boost: { value: this.params.boost },
         scale: { value: this.params.scale },
-        noiseScale: { value: this.params.noiseScale },
-        noisiness: { value: this.params.noisiness },
         thickness: { value: this.params.thickness },
         contour: { value: this.params.contour },
-        cyan: { value: this.params.cyan },
-        magenta: { value: this.params.magenta },
-        yellow: { value: this.params.yellow },
-        black: { value: this.params.black },
-        noiseTexture: { value: noiseTexture },
+        dark: { value: this.params.dark },
+        mid: { value: this.params.mid },
+        light: { value: this.params.light },
       },
       vertexShader: orthoVs,
       fragmentShader,
     });
+    const finalShader = new RawShaderMaterial({
+      uniforms: {
+        colorTexture: { value: null },
+      },
+      vertexShader: orthoVs,
+      fragmentShader: finalFragmentShader,
+    });
     this.renderPass = new ShaderPass(renderer, shader);
+    this.finalPass = new ShaderPass(renderer, finalShader);
+    finalShader.uniforms.colorTexture.value = this.renderPass.fbo.texture;
   }
 
   setSize(w, h) {
     this.normalFBO.setSize(w, h);
     this.colorFBO.setSize(w, h);
     this.renderPass.setSize(w, h);
+    this.finalPass.setSize(w, h);
   }
 
   render(scene, camera) {
@@ -189,25 +197,21 @@ class Post {
     this.renderer.render(scene, camera);
     this.renderer.setRenderTarget(null);
     scene.overrideMaterial = null;
-    this.renderPass.render(true);
+    this.renderPass.render();
+    this.finalPass.render(true);
   }
 
   generateParams(gui) {
     const controllers = {};
+    controllers["boost"] = gui
+      .add(this.params, "boost", 0.1, 2)
+      .onChange(async (v) => {
+        this.renderPass.shader.uniforms.boost.value = v;
+      });
     controllers["scale"] = gui
       .add(this.params, "scale", 0.1, 2)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.scale.value = v;
-      });
-    controllers["noiseScale"] = gui
-      .add(this.params, "noiseScale", 0, 0.1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noiseScale.value = v;
-      });
-    controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noisiness.value = v;
       });
     controllers["thickness"] = gui
       .add(this.params, "thickness", 0.0, 3)
@@ -219,25 +223,20 @@ class Post {
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.contour.value = v;
       });
-    controllers["cyan"] = gui
-      .add(this.params, "cyan", 0.0, 1)
+    controllers["dark"] = gui
+      .add(this.params, "dark", 0.0, 1)
       .onChange(async (v) => {
-        this.renderPass.shader.uniforms.cyan.value = v;
+        this.renderPass.shader.uniforms.dark.value = v;
       });
-    controllers["magenta"] = gui
-      .add(this.params, "magenta", 0.0, 1)
+    controllers["mid"] = gui
+      .add(this.params, "mid", 0.0, 1)
       .onChange(async (v) => {
-        this.renderPass.shader.uniforms.magenta.value = v;
+        this.renderPass.shader.uniforms.mid.value = v;
       });
-    controllers["yellow"] = gui
-      .add(this.params, "yellow", 0.0, 1)
+    controllers["light"] = gui
+      .add(this.params, "light", 0.0, 1)
       .onChange(async (v) => {
-        this.renderPass.shader.uniforms.yellow.value = v;
-      });
-    controllers["black"] = gui
-      .add(this.params, "black", 0.0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.black.value = v;
+        this.renderPass.shader.uniforms.light.value = v;
       });
     controllers["inkColor"] = gui
       .addColor(this.params, "inkColor")
