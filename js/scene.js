@@ -44,7 +44,7 @@ function initLights(scene) {
 
 const scenes = {
   suzanne: { obj: suzanne, init: false },
-  zardoz: { obj: zardoz, init: false },
+  //zardoz: { obj: zardoz, init: false },
   torus: { obj: torus, init: false },
   blob: { obj: blob, init: false },
   spheres: { obj: spheres, init: false },
