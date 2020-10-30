@@ -1,7 +1,7 @@
-import { Vector2, DoubleSide } from "../third_party/three.module.js";
+import { DoubleSide } from "../third_party/three.module.js";
 import { Material, generateParams } from "./Material.js";
 import * as dat from "../third_party/dat.gui.module.js";
-import { initScene } from "../js/scene.js";
+import { initScene, update } from "../js/scene.js";
 import { renderer, scene, camera, resize, onResize } from "../js/renderer.js";
 import { generateParams as generateEnvParams } from "../js/envMap.js";
 import { Post } from "./post.js";
@@ -25,6 +25,7 @@ const envMapController = generateEnvParams(materialFolder, material);
 envMapController.setValue("bridge");
 
 function render() {
+  update();
   post.render(scene, camera);
   renderer.setAnimationLoop(render);
 }

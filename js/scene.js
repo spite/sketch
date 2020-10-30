@@ -3,6 +3,8 @@ import { obj as torus } from "../js/sceneTorus.js";
 import { obj as backdrop } from "../js/sceneBackdrop.js";
 import { obj as spheres } from "../js/sceneSpheres.js";
 import { obj as suzanne } from "../js/sceneSuzanne.js";
+import { obj as zardoz } from "../js/sceneZardoz.js";
+import { obj as metaballs } from "../js/sceneMetaballs.js";
 
 import {
   DirectionalLight,
@@ -40,17 +42,19 @@ function initLights(scene) {
   //scene.add(spotLight);
 }
 
+const scenes = {
+  suzanne: { obj: suzanne, init: false },
+  zardoz: { obj: zardoz, init: false },
+  torus: { obj: torus, init: false },
+  blob: { obj: blob, init: false },
+  spheres: { obj: spheres, init: false },
+  metaballs: { obj: metaballs, init: false },
+};
+
 async function initScene(scene, material, gui) {
   await backdrop.init(material);
   initLights(scene);
   scene.add(backdrop.group);
-
-  const scenes = {
-    suzanne: { obj: suzanne, init: false },
-    torus: { obj: torus, init: false },
-    blob: { obj: blob, init: false },
-    spheres: { obj: spheres, init: false },
-  };
 
   const params = {};
   const controllers = {};
@@ -73,4 +77,12 @@ async function initScene(scene, material, gui) {
   return controllers;
 }
 
-export { initScene };
+function update() {
+  for (const key of Object.keys(scenes)) {
+    if (scenes[key].obj) {
+      scenes[key].obj.update();
+    }
+  }
+}
+
+export { initScene, update };

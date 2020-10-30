@@ -44,7 +44,7 @@ class Material extends MeshStandardMaterial {
         `#include <uv_vertex>
         vCoords = uv;
         vPosition = position;
-        vWorldPosition = modelMatrix * vec4(position, 1.) + vec4(normal.xyz, 0.);`
+        vWorldPosition = modelMatrix * vec4(position, 1.);// + vec4(normal.xyz, 0.);`
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(

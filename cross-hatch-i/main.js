@@ -1,10 +1,7 @@
 import { Vector2, DoubleSide } from "../third_party/three.module.js";
-import {
-  CrossHatchMaterial,
-  generateParams,
-} from "./crossHatchMaterial.js";
+import { CrossHatchMaterial, generateParams } from "./crossHatchMaterial.js";
 import * as dat from "../third_party/dat.gui.module.js";
-import { initScene } from "../js/scene.js";
+import { initScene, update } from "../js/scene.js";
 import { renderer, scene, camera, resize } from "../js/renderer.js";
 import { generateParams as generatePaperParams } from "../js/paper.js";
 import { generateParams as generateEnvParams } from "../js/envMap.js";
@@ -27,9 +24,10 @@ envMapController.setValue("bridge");
 
 const tmp = new Vector2();
 function render() {
+  update();
   renderer.getSize(tmp);
   tmp.multiplyScalar(window.devicePixelRatio);
- material.uniforms.resolution.value.copy(tmp);
+  material.uniforms.resolution.value.copy(tmp);
   renderer.render(scene, camera);
   renderer.setAnimationLoop(render);
 }
