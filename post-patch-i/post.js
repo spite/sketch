@@ -35,9 +35,6 @@ uniform sampler2D coordsTexture;
 
 uniform vec3 inkColor;
 uniform float scale;
-uniform float noiseScale;
-uniform float noisiness;
-uniform float thickness;
 uniform float contour;
 uniform float cyan;
 uniform float magenta;
@@ -166,7 +163,7 @@ void main() {
 
   vec4 color = texture(colorTexture, vUv);
   float normalEdge = 1.- length(sobel(normalTexture, vUv, size, contour));
-  normalEdge = smoothstep(.5-thickness, .5+thickness, normalEdge);
+  normalEdge = smoothstep(.5-e, .5+e, normalEdge);
   color *= normalEdge;
   color *= 3.;
   
@@ -200,9 +197,6 @@ class Post {
     this.normalFBO = getFBO(1, 1);
     this.params = {
       scale: 100,
-      noiseScale: 0.05,
-      noisiness: 0.2,
-      thickness: 1,
       contour: 1,
       inkColor: new Color(0, 0, 0),
       cyan: 1,
@@ -218,9 +212,6 @@ class Post {
         normalTexture: { value: this.normalFBO.texture },
         inkColor: { value: this.params.inkColor },
         scale: { value: this.params.scale },
-        noiseScale: { value: this.params.noiseScale },
-        noisiness: { value: this.params.noisiness },
-        thickness: { value: this.params.thickness },
         contour: { value: this.params.contour },
         cyan: { value: this.params.cyan },
         magenta: { value: this.params.magenta },
@@ -266,21 +257,6 @@ class Post {
       .add(this.params, "scale", 10, 200)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.scale.value = v;
-      });
-    controllers["noiseScale"] = gui
-      .add(this.params, "noiseScale", 0, 0.1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noiseScale.value = v;
-      });
-    controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noisiness.value = v;
-      });
-    controllers["thickness"] = gui
-      .add(this.params, "thickness", 0.0, 3)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.thickness.value = v;
       });
     controllers["contour"] = gui
       .add(this.params, "contour", 0.0, 10)
