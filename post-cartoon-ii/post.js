@@ -252,9 +252,9 @@ class Post {
       contour: 2,
       border: 0.5,
       cyan: 1,
-      magenta: 1,
-      yellow: 1,
-      black: 1,
+      magenta: 0.7,
+      yellow: 0.6,
+      black: 0.1,
       inkColor: new Color(30, 30, 30),
     };
     const shader = new RawShaderMaterial({
