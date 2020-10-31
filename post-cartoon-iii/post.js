@@ -46,15 +46,12 @@ ${screen}
 
 #define mul(a,b) (b*a)
 
-// adapted from https://github.com/libretro/glsl-shaders/blob/master/misc/cmyk-halftone-dot.glsl
-
-float lines( in float l, in vec2 fragCoord, in vec2 resolution, in float thickness){
-  vec2 center = vec2(resolution.x/2., resolution.y/2.);
-  vec2 uv = fragCoord.xy * resolution;
-
-  float c = (.5 + .5 * sin(uv.x*.5));
+float lines( in float l, in vec2 uv, in vec2 resolution, in float thickness){
+  vec2 center = .5 * resolution;
+  uv *= resolution;
+  float c = .5 + .5 * sin(uv.x*.5);
   float f = (c+thickness)*l;
-  float e = 1. * length(vec2(dFdx(fragCoord.x), dFdy(fragCoord.y))); 
+  float e = 1. * length(vec2(dFdx(uv.x), dFdy(uv.y))); 
   f = smoothstep(.5-e, .5+e, f);
   return f;
 }
@@ -93,10 +90,12 @@ void main() {
     float k = lines(l/mid, rot(uv, 15.), size, thickness);
     rgbscreen = mix(rgbscreen, mix(rgbscreen, inkColor/255., .5), 1.-k);
   } 
-  
+
   if(l>light){
     vec2 uv = vUv * size;
     float frequency = .05;
+
+    // adapted from https://github.com/libretro/glsl-shaders/blob/master/misc/cmyk-halftone-dot.glsl
 
     float w = mix(0., 1., thickness);
     mat2 k_matrix = mat2(0.707, 0.707, -0.707, 0.707);
@@ -116,6 +115,7 @@ const finalFragmentShader = `#version 300 es
 precision highp float;
 
 uniform sampler2D colorTexture;
+uniform float delta;
 
 in vec2 vUv;
 
@@ -125,7 +125,6 @@ void main() {
   vec2 dir = vUv - vec2( .5 );
 	float d = .7 * length( dir );
   normalize( dir );
-  float delta = 100.;
 	vec2 value = d * dir * delta;
   vec2 resolution = vec2(textureSize(colorTexture, 0));
 
@@ -151,6 +150,7 @@ class Post {
       dark: 0.86,
       mid: 0.62,
       light: 0.62,
+      aberration: 100,
     };
     const shader = new RawShaderMaterial({
       uniforms: {
@@ -172,6 +172,7 @@ class Post {
     const finalShader = new RawShaderMaterial({
       uniforms: {
         colorTexture: { value: null },
+        delta: { value: this.params.aberration },
       },
       vertexShader: orthoVs,
       fragmentShader: finalFragmentShader,
@@ -237,6 +238,11 @@ class Post {
       .add(this.params, "light", 0.0, 1)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.light.value = v;
+      });
+    controllers["aberration"] = gui
+      .add(this.params, "aberration", 0.0, 100)
+      .onChange(async (v) => {
+        this.finalPass.shader.uniforms.delta.value = v;
       });
     controllers["inkColor"] = gui
       .addColor(this.params, "inkColor")
