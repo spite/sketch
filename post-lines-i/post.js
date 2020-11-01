@@ -29,11 +29,13 @@ uniform sampler2D normalTexture;
 uniform sampler2D paperTexture;
 uniform sampler2D noiseTexture;
 uniform vec3 inkColor;
+uniform float noiseScale;
 uniform float scale;
 uniform float thickness;
 uniform float noisiness;
 uniform float angle;
 uniform float contour;
+uniform float divergence;
 
 out vec4 fragColor;
 
@@ -49,7 +51,7 @@ ${darken}
 
 #define TAU 6.28318530718
 
-#define LEVELS 50
+#define LEVELS 10
 #define fLEVELS float(LEVELS)
 
 float sampleSrc(in sampler2D src, in vec2 uv) {
@@ -127,28 +129,36 @@ float texh(in vec2 p, in float lum) {
  return 1.;
 }
 
+float lines( in float l, in vec2 fragCoord, in vec2 resolution, in float thickness){
+  vec2 center = vec2(resolution.x/2., resolution.y/2.);
+  vec2 uv = fragCoord.xy * resolution;
+
+  float c = (.5 + .5 * sin(uv.x*.5));
+  float f = (c+thickness)*l;
+  float e = 1. * length(vec2(dFdx(fragCoord.x), dFdy(fragCoord.y))); 
+  f = smoothstep(.5-e, .5+e, f);
+  return f;
+}
+
+
 void main() {
   vec2 size = vec2(textureSize(colorTexture, 0));
   
   float hatch = 0.;
-  float ss = scale * 1.;
+  float ss = noiseScale * 1.;
   vec2 offset = noisiness * vec2(fbm3(vec3(ss*vUv,1.)), fbm3(vec3(ss*vUv.yx,1.)));
   vec2 uv = vUv + offset;
 
   float l = luma(texture(colorTexture, uv).rgb);
   l = round(l * float(LEVELS)) / float(LEVELS);
-  l *= 2.;
-  hatch = 0.;
+  //l *= 2.;
+  hatch = 1.;
 
   float normalEdge = length(sobel(normalTexture, uv, size, 3. * contour));
   normalEdge = 1.-aastep(.5, normalEdge);
   l *= normalEdge;
+  l *= 2.;
   l = clamp(l, 0., 1.);
-
-  float a = angle;
-  float s = sin(a);
-  float c = cos(a);
-  mat2 rot = mat2(c, -s, s, c);
 
   for(int i=0; i<LEVELS; i++) {
     float f = float(i)/fLEVELS;
@@ -158,26 +168,25 @@ void main() {
     normalEdge = aastep(.5, normalEdge);
   
     if(l<=f) {
-
-      float f = float(i) / float(LEVELS);
-      float ss = scale * mix(1., 4., f);
+      float ss = noiseScale * mix(1., 4., f);
       vec2 offset = noisiness * vec2(fbm3(vec3(ss*vUv,1.)), fbm3(vec3(ss*vUv.yx,1.)));
+      vec2 uv = vUv + offset;
       
-      uv = rot * uv;// (uv - .5) + .5;
+      float a = angle + divergence * mix(0., 3.2 * TAU, f);
+      float s = sin(a);
+      float c = cos(a);
+      mat2 rot = mat2(c, -s, s, c);
+    
+      uv = rot * (uv - .5) + .5;
 
-      float threshold = mix(fLEVELS, 200., f);
-      float v = abs(mod(uv.y*size.y+f*threshold, threshold));
-      if (v < 1.+thickness) {
-        v = 1.;
-      } else {
-        v = 0.;
-      }
-      hatch += v;
+      float w = l/f;
+      float v = lines(w, scale * mix(5.,1., f) * uv, size, w*(1.-thickness));
+      hatch *= v;
     }
   }
   
   vec4 paper = texture(paperTexture, .00025 * vUv*size);
-  fragColor.rgb = blendDarken(paper.rgb, inkColor/255., hatch);
+  fragColor.rgb = blendDarken(paper.rgb, inkColor/255., 1.-hatch);
   //fragColor.rgb = blendDarken(fragColor.rgb, inkColor/255., 1.-normalEdge);
   fragColor.a = 1.;
 }
@@ -189,13 +198,14 @@ class Post {
     this.colorFBO = getFBO(1, 1);
     this.normalFBO = getFBO(1, 1);
     this.params = {
-      scale: 0.72,
+      scale: 0.5,
+      noiseScale: 0.72,
       angle: 2,
-      randomness: 0,
-      thickness: 0.7,
+      divergence: 1,
+      thickness: 0.72,
       contour: 1.2,
       noisiness: 0.007,
-      inkColor: new Color(18, 119, 140),
+      inkColor: new Color(68, 107, 147),
     };
     const shader = new RawShaderMaterial({
       uniforms: {
@@ -205,9 +215,10 @@ class Post {
         noiseTexture: { value: noiseTexture },
         inkColor: { value: this.params.inkColor },
         scale: { value: this.params.scale },
-        randomness: { value: this.params.randomness },
+        divergence: { value: this.params.divergence },
         thickness: { value: this.params.thickness },
         contour: { value: this.params.contour },
+        noiseScale: { value: this.params.noiseScale },
         noisiness: { value: this.params.noisiness },
         angle: { value: this.params.angle },
       },
@@ -238,24 +249,29 @@ class Post {
   generateParams(gui) {
     const controllers = {};
     controllers["scale"] = gui
-      .add(this.params, "scale", 0.1, 1)
+      .add(this.params, "scale", 0.1, 2)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.scale.value = v;
       });
     controllers["thickness"] = gui
-      .add(this.params, "thickness", 0, 5)
+      .add(this.params, "thickness", 0, 1)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.thickness.value = v;
+      });
+    controllers["noiseScale"] = gui
+      .add(this.params, "noiseScale", 0.1, 1)
+      .onChange(async (v) => {
+        this.renderPass.shader.uniforms.noiseScale.value = v;
       });
     controllers["noisiness"] = gui
       .add(this.params, "noisiness", 0, 0.02)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.noisiness.value = v;
       });
-    controllers["randomness"] = gui
-      .add(this.params, "randomness", 0, 0.02)
+    controllers["divergence"] = gui
+      .add(this.params, "divergence", 0, 1)
       .onChange(async (v) => {
-        this.renderPass.shader.uniforms.randomness.value = v;
+        this.renderPass.shader.uniforms.divergence.value = v;
       });
     controllers["angle"] = gui
       .add(this.params, "angle", 0, Math.PI)
