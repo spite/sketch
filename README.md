@@ -10,3 +10,7 @@ Link: https://spite.github.io/sketch/
 [![Index page](https://raw.githubusercontent.com/spite/sketch/master/snapshots/gallery.jpg)](https://spite.github.io/sketch/)
 
 Paper textures from https://maxpacks.com/paperpack
+
+Lee Perry head from [I-R Entertainment Ltd.](https://ir-ltd.net/)
+
+Suzanne from [NaN/Blende)r Foundation](https://www.blender.org/)
