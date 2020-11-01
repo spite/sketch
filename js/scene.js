@@ -4,7 +4,7 @@ import { obj as backdrop } from "../js/sceneBackdrop.js";
 import { obj as spheres } from "../js/sceneSpheres.js";
 import { obj as suzanne } from "../js/sceneSuzanne.js";
 //import { obj as zardoz } from "../js/sceneZardoz.js";
-//import { obj as leePerry } from "../js/sceneLeePerry.js";
+import { obj as leePerry } from "../js/sceneLeePerry.js";
 import { obj as metaballs } from "../js/sceneMetaballs.js";
 
 import {
@@ -47,7 +47,7 @@ const scenes = {
   backdrop: { obj: backdrop, init: false },
   suzanne: { obj: suzanne, init: false },
   //  zardoz: { obj: zardoz, init: false },
-  //  leePerry: { obj: leePerry, init: false },
+  leePerry: { obj: leePerry, init: false },
   torus: { obj: torus, init: false },
   blob: { obj: blob, init: false },
   spheres: { obj: spheres, init: false },
