@@ -14,6 +14,9 @@
         margin: 0;
         padding: 0;
       }
+      a {
+        color: inherit;
+      }
       body {
         font-family: "Poppins", sans-serif;
       }
@@ -36,6 +39,9 @@
         flex-wrap: wrap;
         text-align: center;
         justify-content: center;
+      }
+      a.empty {
+        width: 25%;
       }
       a.card {
         width: 25%;
@@ -82,12 +88,18 @@
           height: 25vw;
           font-size: 2vw;
         }
+        a.empty {
+          width: 50%;
+        }
       }
       @media screen and (max-width: 800px) {
         a.card {
           width: 100vw;
           height: 50vw;
           font-size: 4vw;
+        }
+        a.empty {
+          width: 50vw;
         }
       }
     </style>
@@ -233,7 +245,7 @@
         <img src="snapshots/post-cartoon-v.jpg" />
         <h2>Post Cartoon V</h2>
       </a>
-      <a class="card"></a>
+      <a class="empty"></a>
     </div>
   </body>
 </html>
