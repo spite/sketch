@@ -7,8 +7,11 @@ import {
   RepeatWrapping,
   HalfFloatType,
   RGBAFormat,
+  UnsignedByteType,
+  Vector2,
 } from "../third_party/three.module.js";
 import { ShaderPass } from "../js/ShaderPass.js";
+import { ShaderPingPongPass } from "../js/ShaderPingPongPass.js";
 import { getFBO } from "../js/FBO.js";
 import { shader as orthoVs } from "../shaders/ortho-vs.js";
 import { shader as sobel } from "../shaders/sobel.js";
@@ -17,6 +20,7 @@ import { shader as luma } from "../shaders/luma.js";
 import { generateParams as generatePaperParams } from "../js/paper.js";
 import { shader as darken } from "../shaders/blend-darken.js";
 import { shader as screen } from "../shaders/blend-screen.js";
+import { blur5 } from "../shaders/fast-separable-gaussian-blur.js";
 
 import {
   Material as ColorMaterial,
@@ -29,6 +33,23 @@ const colorMat = new ColorMaterial({ side: DoubleSide });
 const loader = new TextureLoader();
 const noiseTexture = loader.load("../assets/noise1.png");
 noiseTexture.wrapS = noiseTexture.wrapT = RepeatWrapping;
+
+const blurFragmentShader = `#version 300 es
+precision highp float;
+
+uniform sampler2D inputTexture;
+uniform vec2 direction;
+
+${blur5}
+
+in vec2 vUv;
+out vec4 fragColor;
+
+void main() {
+  vec2 size = vec2(textureSize(inputTexture, 0));
+  fragColor = blur5(inputTexture, vUv, size, direction);
+}
+`;
 
 const componentFragmentShader = `#version 300 es
 precision highp float;
@@ -288,7 +309,7 @@ void main() {
   fragColor.rgb = blendDarken(fragColor.rgb, darkInk/255., border*.25 * shade);
   fragColor.rgb = blendDarken(fragColor.rgb, darkInk/255., darkIntensity * (1.-shadeHatch));
   fragColor.rgb = blendScreen(fragColor.rgb, brightInk/255., brightIntensity * whiteHatch);
-    
+  
   fragColor.a = 1.;
 }
 `;
@@ -302,7 +323,7 @@ class Post {
     this.params = {
       roughness: 0.2,
       metalness: 0.1,
-      colorScale: 0.25,
+      colorScale: 0.07,
       colorOffset: 0.25,
       colorWidth: 0.5,
       scale: 0.32,
@@ -310,6 +331,7 @@ class Post {
       thickness: 0.7,
       noisiness: 0.003,
       contour: 2,
+      blur: 2,
       border: 0.5,
       fill: 1,
       stroke: 1,
@@ -318,7 +340,7 @@ class Post {
       yellow: 0.6,
       black: 0.1,
       darkIntensity: 0.75,
-      brightIntensity: 0.25,
+      brightIntensity: 1,
       darkInk: new Color(30, 30, 30),
       brightInk: new Color(230, 230, 230),
     };
@@ -336,6 +358,7 @@ class Post {
         thickness: { value: this.params.thickness },
         contour: { value: this.params.contour },
         border: { value: this.params.border },
+        blur: { value: this.params.blur },
         stroke: { value: this.params.stroke },
         fill: { value: this.params.fill },
         darkIntensity: { value: this.params.darkIntensity },
@@ -346,10 +369,26 @@ class Post {
       vertexShader: orthoVs,
       fragmentShader,
     });
+    const blurShader = new RawShaderMaterial({
+      uniforms: {
+        inputTexture: { value: this.colorFBO.texture },
+        direction: { value: new Vector2() },
+      },
+      vertexShader: orthoVs,
+      fragmentShader: blurFragmentShader,
+    });
+    this.blurPass = new ShaderPingPongPass(renderer, blurShader, {
+      format: RGBAFormat,
+      type: UnsignedByteType,
+    });
+    this.blurShadePass = new ShaderPingPongPass(renderer, blurShader, {
+      format: RGBAFormat,
+      type: UnsignedByteType,
+    });
     this.renderPass = new ShaderPass(renderer, shader);
     const componentShader = new RawShaderMaterial({
       uniforms: {
-        colorTexture: { value: this.colorFBO.texture },
+        colorTexture: { value: null },
         cyan: { value: this.params.cyan },
         magenta: { value: this.params.magenta },
         yellow: { value: this.params.yellow },
@@ -371,6 +410,8 @@ class Post {
     this.shadeFBO.setSize(w, h);
     this.renderPass.setSize(w, h);
     this.componentPass.setSize(w, h);
+    this.blurPass.setSize(w, h);
+    this.blurShadePass.setSize(w, h);
   }
 
   render(scene, camera) {
@@ -389,6 +430,46 @@ class Post {
     this.renderer.render(scene, camera);
     this.renderer.setRenderTarget(null);
     scene.overrideMaterial = null;
+
+    this.blurPass.shader.uniforms.inputTexture.value = this.colorFBO.texture;
+    for (let i = 0; i < 6; i++) {
+      if (i < this.params.blur) {
+        var d = (i + 1) * 2;
+        this.blurPass.shader.uniforms.direction.value.set(d, 0);
+        this.blurPass.render();
+        this.blurPass.shader.uniforms.inputTexture.value = this.blurPass.fbos[
+          this.blurPass.currentFBO
+        ].texture;
+        this.blurPass.shader.uniforms.direction.value.set(0, d);
+        this.blurPass.render();
+        this.blurPass.shader.uniforms.inputTexture.value = this.blurPass.fbos[
+          this.blurPass.currentFBO
+        ].texture;
+      }
+    }
+    this.componentPass.shader.uniforms.colorTexture.value = this.blurPass.shader.uniforms.inputTexture.value = this.blurPass.fbos[
+      this.blurPass.currentFBO
+    ].texture;
+
+    this.blurShadePass.shader.uniforms.inputTexture.value = this.shadeFBO.texture;
+    for (let i = 0; i < 6; i++) {
+      if (i < this.params.blur) {
+        var d = (i + 1) * 2;
+        this.blurShadePass.shader.uniforms.direction.value.set(d, 0);
+        this.blurShadePass.render();
+        this.blurShadePass.shader.uniforms.inputTexture.value = this.blurShadePass.fbos[
+          this.blurShadePass.currentFBO
+        ].texture;
+        this.blurShadePass.shader.uniforms.direction.value.set(0, d);
+        this.blurShadePass.render();
+        this.blurShadePass.shader.uniforms.inputTexture.value = this.blurShadePass.fbos[
+          this.blurShadePass.currentFBO
+        ].texture;
+      }
+    }
+    this.renderPass.shader.uniforms.shadeTexture.value = this.blurShadePass.shader.uniforms.inputTexture.value = this.blurShadePass.fbos[
+      this.blurShadePass.currentFBO
+    ].texture;
 
     this.componentPass.render();
     this.renderPass.render(true);
@@ -411,11 +492,7 @@ class Post {
       .onChange(async (v) => {
         colorMat.uniforms.width.value = v;
       });
-    // controllers["metalness"] = gui
-    //   .add(this.params, "metalness", 0., 1)
-    //   .onChange(async (v) => {
-    //     this.renderPass.shader.uniforms.metalness.value = v;
-    //   });
+
     controllers["scale"] = gui
       .add(this.params, "scale", 0.1, 1)
       .onChange(async (v) => {
@@ -426,6 +503,7 @@ class Post {
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.thickness.value = v;
       });
+    controllers["blur"] = gui.add(this.params, "blur", 0, 7);
     controllers["contour"] = gui
       .add(this.params, "contour", 0, 5)
       .onChange(async (v) => {
