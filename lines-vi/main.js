@@ -6,6 +6,8 @@ import { renderer, scene, camera, resize } from "../js/renderer.js";
 import { generateParams as generatePaperParams } from "../js/paper.js";
 import { generateParams as generateEnvParams } from "../js/envMap.js";
 
+// from https://twitter.com/oceanquigley/status/1322991432160866304
+
 const gui = new dat.GUI();
 const materialFolder = gui.addFolder("Material");
 materialFolder.open();
