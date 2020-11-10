@@ -23,6 +23,8 @@ class LineMaterial extends MeshStandardMaterial {
       rim: 0.9,
       noiseScale: 0.1,
       noiseAmplitude: 0.3,
+      linesNoiseScale: 5,
+      linesNoiseAmplitude: 0.5,
     };
 
     this.uniforms = {
@@ -37,6 +39,8 @@ class LineMaterial extends MeshStandardMaterial {
       rim: { value: this.params.rim },
       noiseScale: { value: this.params.noiseScale },
       noiseAmplitude: { value: this.params.noiseAmplitude },
+      linesNoiseScale: { value: this.params.linesNoiseScale },
+      linesNoiseAmplitude: { value: this.params.linesNoiseAmplitude },
     };
 
     this.onBeforeCompile = (shader, renderer) => {
@@ -75,7 +79,9 @@ class LineMaterial extends MeshStandardMaterial {
         uniform float rim;
         uniform float noiseScale;
         uniform float noiseAmplitude;
-
+        uniform float linesNoiseScale;
+        uniform float linesNoiseAmplitude;
+        
         in vec3 vPosition;
         in vec2 vCoords;
         in vec4 vWorldPosition;
@@ -160,7 +166,7 @@ class LineMaterial extends MeshStandardMaterial {
         // float de = length(vec2(dFdx(vWorldPosition.x), dFdy(vWorldPosition.y)));
         float de = .001 * length(vec2(dFdx(gl_FragCoord.x), dFdy(gl_FragCoord.y)));
         float e = .1 * de; 
-        vec2 coords = scale*100.*vWorldPosition.xy/(de*500.);
+        vec2 coords = scale*100.*(vWorldPosition.xy/(de*500.)) + linesNoiseAmplitude * noise(linesNoiseScale*vWorldPosition.xy);
 
         float border = pow(smoothstep(0.,.25, r), rim);
         l *= border;
@@ -200,6 +206,12 @@ function generateParams(gui, material) {
   gui
     .add(params, "scale", 0.1, 3, 0.001)
     .onChange((v) => (material.uniforms.scale.value = v));
+  gui
+    .add(params, "linesNoiseScale", 0, 20, 0.1)
+    .onChange((v) => (material.uniforms.linesNoiseScale.value = v));
+  gui
+    .add(params, "linesNoiseAmplitude", 0, 1, 0.01)
+    .onChange((v) => (material.uniforms.linesNoiseAmplitude.value = v));
   gui
     .add(params, "angle", 0, 2 * Math.PI, 0.001)
     .onChange((v) => (material.uniforms.angle.value = v));
