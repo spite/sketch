@@ -122,9 +122,9 @@ void main() {
   vec2 uv = vUv + offset;
   vec4 border = sobel(colorTexture, uv, size, 5.);
 
-  float shadeCol = 1.;
-
   int SHADELEVELS = 5;
+  float shadeCol = 1.;//SHADELEVELS;
+
   float fLevels = float(SHADELEVELS);
   for(int i=0; i<SHADELEVELS; i++) {
     float f = float(i) / float(SHADELEVELS);
@@ -143,26 +143,26 @@ void main() {
   shadeCol *= 1.-smoothstep(.5,.5, luma(border.rgb));
   vec3 color = vec3(1.);
 
-  if(shadeCol == 0.) {
-    color = vec3(0.,50.,76.)/255.;
+  if(shadeCol >= 4./fLevels) {
+    color = vec3(253.,228.,168.)/255.;
   }
-  if(shadeCol == 1./fLEVELS) {
-    color = vec3(216.,27.,33.)/255.;
-  }
-  if(shadeCol == 2./fLEVELS) {
-    color = vec3(126.,164.,174.)/255.;
-  }
-  if(shadeCol == 3./fLEVELS) {
+  else if(shadeCol >= 3./fLevels) {
     float l = mod(vUv.y*size.y, 10.) > 5. ? 0.:1.;
     color = mix(vec3(126.,164.,174.)/255.,vec3(253.,228.,168.)/255.,l);
   }
-  if(shadeCol >= 4./fLEVELS) {
-    color = vec3(253.,228.,168.)/255.;
+  else if(shadeCol >= 2./fLevels) {
+    color = vec3(126.,164.,174.)/255.;
+  }
+  else if(shadeCol >= 1./fLevels) {
+    color = vec3(216.,27.,33.)/255.;
+  }
+  else {
+    color = vec3(0.,50.,76.)/255.;
   }
 
   fragColor.rgb = texture(paperTexture, vUv).rgb;
   fragColor.rgb = blendDarken(fragColor.rgb, color, 1.);
-
+ 
   fragColor.a = 1.;
 }
 `;
