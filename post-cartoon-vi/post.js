@@ -29,7 +29,9 @@ uniform float thickness;
 uniform float contour;
 uniform float minLuma;
 uniform float maxLuma;
-uniform float light;
+uniform float minLight;
+uniform float lightBoost;
+uniform float expLight;
 
 out vec4 fragColor;
 
@@ -46,32 +48,12 @@ ${screen}
 
 #define mul(a,b) (b*a)
 
-float lines( in float l, in vec2 uv, in vec2 resolution, in float thickness){
-  vec2 center = .5 * resolution;
-  uv *= resolution;
-  float c = .5 + .5 * sin(uv.x*.5);
-  float f = (c+thickness)*l;
-  float e = 1. * length(vec2(dFdx(uv.x), dFdy(uv.y))); 
-  f = smoothstep(.5-e, .5+e, f);
-  return f;
-}
-
-#define TAU 6.28318530718
-
-vec2 rot(in vec2 uv, in float a) {
-  a = a * TAU / 360.;
-  float s = sin(a);
-  float c = cos(a);
-  mat2 rot = mat2(c, -s, s, c);
-  return rot * uv;
-}
-
 void main() {
   vec2 size = vec2(textureSize(colorTexture, 0));
   float e = .01;
   vec4 color = texture(colorTexture, vUv);
   float normalEdge = 1.- length(sobel(normalTexture, vUv, size, contour));
-  normalEdge = smoothstep(.5-thickness, .5+thickness, normalEdge);
+  //normalEdge = smoothstep(.5-thickness, .5+thickness, normalEdge);
   vec4 paper = texture(paperTexture, .00025 * vUv*size);
   
   float l0 = luma(color.rgb);
@@ -84,20 +66,17 @@ void main() {
   vec3 rgbscreen = mix(vec3(1.), inkColor/255., 1.-shadeCol);
 
   vec3 dots = vec3(0.);
-  if(l0>(1.-light)){
-    vec2 uv = vUv * size;
-    float frequency = .05;
+  vec2 uv = vUv * size;
+  float frequency = .05;
 
-    // adapted from https://github.com/libretro/glsl-shaders/blob/master/misc/cmyk-halftone-dot.glsl
+  // adapted from https://github.com/libretro/glsl-shaders/blob/master/misc/cmyk-halftone-dot.glsl
 
-    float w = mix(0., 1., thickness);
-    mat2 k_matrix = mat2(0.707, 0.707, -0.707, 0.707);
-    vec2 Kst = frequency * scale * mul(k_matrix , uv);
-    vec2 Kuv = w * (2. * fract(Kst) - 1.);
-    float k = step(0.0, sqrt(l0-(1.-light)) - length(Kuv));
+  mat2 k_matrix = mat2(0.707, 0.707, -0.707, 0.707);
+  vec2 Kst = frequency * scale * mul(k_matrix , uv);
+  vec2 Kuv = (2. * fract(Kst) - 1.);
+  float k = step(0.0, minLight + expLight*exp(l) + sqrt((l+minLight)*thickness) - length(Kuv));
     
-    dots = vec3(k);
-  }
+  dots = lightBoost*(l+minLight)*vec3(k);
 
   fragColor.rgb = blendDarken(paper.rgb, rgbscreen, 1.);
   fragColor.rgb = blendScreen(fragColor.rgb, dots, 1.);
@@ -138,14 +117,16 @@ class Post {
     this.colorFBO = getFBO(1, 1);
     this.normalFBO = getFBO(1, 1);
     this.params = {
-      scale: 1.5,
-      thickness: 1,
+      scale: 2.5,
+      thickness: 0.4,
+      minLight: 0.1,
       contour: 4,
       inkColor: new Color(13, 13, 13),
-      min: 0.3,
-      max: 1,
-      light: 0.38,
-      aberration: 20,
+      min: 0.34,
+      max: 0.71,
+      lightBoost: 1.01,
+      expLight: 0.2,
+      aberration: 80,
       levels: 100,
     };
     const shader = new RawShaderMaterial({
@@ -159,7 +140,9 @@ class Post {
         contour: { value: this.params.contour },
         minLuma: { value: this.params.min },
         maxLuma: { value: this.params.max },
-        light: { value: this.params.light },
+        minLight: { value: this.params.minLight },
+        lightBoost: { value: this.params.lightBoost },
+        expLight: { value: this.params.expLight },
         levels: { value: this.params.levels },
       },
       vertexShader: orthoVs,
@@ -194,8 +177,8 @@ class Post {
     this.renderer.render(scene, camera);
     this.renderer.setRenderTarget(null);
     scene.overrideMaterial = null;
-    this.renderPass.render(true);
-    //this.finalPass.render(true);
+    this.renderPass.render();
+    this.finalPass.render(true);
   }
 
   generateParams(gui) {
@@ -206,7 +189,7 @@ class Post {
         this.renderPass.shader.uniforms.levels.value = v;
       });
     controllers["scale"] = gui
-      .add(this.params, "scale", 0.1, 2)
+      .add(this.params, "scale", 0.1, 4)
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.scale.value = v;
       });
@@ -230,10 +213,20 @@ class Post {
       .onChange(async (v) => {
         this.renderPass.shader.uniforms.maxLuma.value = v;
       });
-    controllers["light"] = gui
-      .add(this.params, "light", 0.0, 1, 0.01)
+    controllers["minLight"] = gui
+      .add(this.params, "minLight", 0.0, 1, 0.01)
       .onChange(async (v) => {
-        this.renderPass.shader.uniforms.light.value = v;
+        this.renderPass.shader.uniforms.minLight.value = v;
+      });
+    controllers["lightBoost"] = gui
+      .add(this.params, "lightBoost", 0.0, 10, 0.01)
+      .onChange(async (v) => {
+        this.renderPass.shader.uniforms.lightBoost.value = v;
+      });
+    controllers["expLight"] = gui
+      .add(this.params, "expLight", 0.0, 1, 0.001)
+      .onChange(async (v) => {
+        this.renderPass.shader.uniforms.expLight.value = v;
       });
     controllers["aberration"] = gui
       .add(this.params, "aberration", 0.0, 100, 0.1)
