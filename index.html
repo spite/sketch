@@ -38,25 +38,28 @@
         border-bottom: 1px solid black;
       }
       div.cards {
-        display: flex;
-        flex-wrap: wrap;
-        text-align: center;
-        justify-content: center;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(512px, 1fr));
+      }
+      div.cards a::before {
+        content: "";
+        display: block;
+        padding-bottom: 50%;
       }
       a.empty {
         width: 25%;
         height: auto;
       }
       a.card {
-        width: 25%;
-        height: 12.5vw;
-        display: flex;
+        background-size: cover;
+        background-position: 50% 50%;
         position: relative;
-        font-size: 1vw;
         align-items: center;
       }
       a.card img {
         position: absolute;
+        left: 0;
+        top: 0;
         width: 100%;
         height: 100%;
       }
@@ -80,34 +83,21 @@
         text-align: center;
         width: 100%;
         opacity: 0.25;
+        font-size: 2em;
+        top: 0;
+        bottom: 0;
+        right: 0;
         text-shadow: 0 0 10px black;
         transition: opacity 200ms ease-out;
-        justify-items: center;
+        display: flex;
+        flex: 1 1 100%;
+        align-items: center;
+        align-content: center;
+        text-align: center;
+        justify-content: center;
       }
       a.card:hover h2 {
         opacity: 1;
-      }
-      @media screen and (max-width: 1600px) {
-        a.card {
-          width: 50%;
-          height: 25vw;
-          font-size: 2vw;
-        }
-        a.empty {
-          width: 50%;
-          height: auto;
-        }
-      }
-      @media screen and (max-width: 800px) {
-        a.card {
-          width: 100vw;
-          height: 50vw;
-          font-size: 4vw;
-        }
-        a.empty {
-          width: 50vw;
-          height: auto;
-        }
       }
     </style>
     <link
