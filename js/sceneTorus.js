@@ -18,6 +18,7 @@ const params = {
 async function generate() {
   if (torus) {
     group.remove(torus);
+    torus.geometry.dispose();
   }
   torus = new Mesh(
     new TorusKnotBufferGeometry(
