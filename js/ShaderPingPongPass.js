@@ -11,7 +11,7 @@ class ShaderPingPongPass {
     this.renderer = renderer;
     this.shader = shader;
     this.orthoScene = new Scene();
-    this.fbo = getFBO(1, 1, options);
+    this.fbo = getFBO(1, 1, { depthBuffer: false, ...options });
     this.fbos = [this.fbo, this.fbo.clone()];
     this.currentFBO = 0;
     this.orthoCamera = new OrthographicCamera(

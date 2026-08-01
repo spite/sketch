@@ -11,7 +11,7 @@ class ShaderPass {
     this.renderer = renderer;
     this.shader = shader;
     this.orthoScene = new Scene();
-    this.fbo = getFBO(1, 1, options);
+    this.fbo = getFBO(1, 1, { depthBuffer: false, ...options });
     this.orthoCamera = new OrthographicCamera(
       1 / -2,
       1 / 2,
