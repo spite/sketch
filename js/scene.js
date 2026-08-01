@@ -19,14 +19,14 @@ function initLights(scene) {
   light.position.set(0, 1, 3);
   light.castShadow = true;
   light.shadow.bias = -0.0001;
-  light.shadow.mapSize.set(4096, 4096);
+  light.shadow.mapSize.set(1024, 1024);
   scene.add(light);
 
   const light2 = new DirectionalLight(0xffffff, 0.5);
   light2.position.set(-3, -3, -3);
   light2.castShadow = true;
   light2.shadow.bias = -0.0001;
-  light2.shadow.mapSize.set(4096, 4096);
+  light2.shadow.mapSize.set(1024, 1024);
   scene.add(light2);
 
   const hemiLight = new HemisphereLight(0xbbbbbb, 0x080808, 1);
