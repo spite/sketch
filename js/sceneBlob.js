@@ -20,6 +20,7 @@ const params = {
 async function generate() {
   if (blob) {
     group.remove(blob);
+    blob.geometry.dispose();
   }
 
   const v = new Vector3();
