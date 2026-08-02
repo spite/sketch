@@ -1,3 +1,4 @@
+import { signal } from "../third_party/guspira.js";
 import {
   MeshBasicMaterial,
   Vector2,
@@ -182,9 +183,7 @@ class Material extends MeshBasicMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui
-    .add(params, "scale", 0.1, 5)
-    .onChange((v) => (material.uniforms.scale.value = v));
+  gui.addSlider("scale", signal(params.scale), 0.1, 5, 0.01, (v) => (material.uniforms.scale.value = v));
   //gui.add(params, "offset", 0, 1).onChange((v) => (material.metalness = v));
 }
 

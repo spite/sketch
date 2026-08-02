@@ -13,6 +13,8 @@ import {
   AmbientLight,
   PointLight,
 } from "../third_party/three.module.js";
+import { signal } from "../third_party/guspira.js";
+import { addRenderParams } from "./params.js";
 
 function initLights(scene) {
   const light = new DirectionalLight(0xffffff, 0.5);
@@ -57,25 +59,36 @@ const scenes = {
 async function initScene(scene, material, gui) {
   initLights(scene);
 
-  const params = {};
   const controllers = {};
-  const folder = gui.addFolder("Scene");
-  folder.open();
-  for (const key of Object.keys(scenes)) {
-    params[key] = false;
-    const controller = folder.add(params, key).onChange(async (v) => {
-      if (!scenes[key].init) {
-        await scenes[key].obj.init(material);
-        scene.add(scenes[key].obj.group);
-        scenes[key].init = true;
-      }
-      scenes[key].obj.group.visible = v;
-    });
-    controllers[key] = controller;
-    scenes[key].obj.params(folder);
+  gui.addSection("Render");
+  addRenderParams(gui);
+  gui.addSection("Scene");
+
+  async function show(key, visible) {
+    if (!scenes[key].init) {
+      await scenes[key].obj.init(material);
+      scene.add(scenes[key].obj.group);
+      scenes[key].init = true;
+    }
+    scenes[key].obj.group.visible = visible;
   }
 
-  controllers["backdrop"].setValue(true);
+  for (const key of Object.keys(scenes)) {
+    const visible = signal(false);
+    gui.addCheckbox(key, visible, (v) => show(key, v));
+    // setValue keeps the call shape the sketches already use; a signal alone
+    // would update the checkbox without running show().
+    controllers[key] = {
+      signal: visible,
+      setValue: async (v) => {
+        visible.set(v);
+        await show(key, v);
+      },
+    };
+    scenes[key].obj.params(gui);
+  }
+
+  await controllers.backdrop.setValue(true);
 
   return controllers;
 }

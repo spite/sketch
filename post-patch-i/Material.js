@@ -1,3 +1,4 @@
+import { addMaterialParams } from "../js/params.js";
 import {
   MeshStandardMaterial,
   Vector2,
@@ -188,8 +189,7 @@ class Material extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
+  addMaterialParams(gui, material);
 }
 
 export { Material, generateParams };

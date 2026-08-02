@@ -1,16 +1,16 @@
 import { DoubleSide } from "../third_party/three.module.js";
 import { Material, generateParams } from "./Material.js";
-import * as dat from "../third_party/dat.gui.module.js";
+import { GUI } from "../third_party/guspira.js";
 import { initScene, update } from "../js/scene.js";
-import { renderer, scene, camera, resize, onResize } from "../js/renderer.js";
-import { generateParams as generateEnvParams } from "../js/envMap.js";
+import { renderer, scene, camera, resize, onResize, dPR } from "../js/renderer.js";
 import { Post } from "./post.js";
+import { addEnvParams } from "../js/params.js";
 
 const post = new Post(renderer);
 
-const gui = new dat.GUI();
-const materialFolder = gui.addFolder("Material");
-materialFolder.open();
+const gui = new GUI("Post Technical", document.querySelector("#gui"));
+gui.show();
+gui.addSection("Material");
 
 const material = new Material({
   color: 0x808080,
@@ -18,11 +18,9 @@ const material = new Material({
   metalness: 0.1,
   side: DoubleSide,
 });
-generateParams(materialFolder, material);
-const postController = post.generateParams(materialFolder);
-postController["paper"].setValue("Parchment");
-const envMapController = generateEnvParams(materialFolder, material);
-envMapController.setValue("bridge");
+generateParams(gui, material);
+post.generateParams(gui, { paper: "Parchment" });
+addEnvParams(gui, material, "bridge");
 
 function render() {
   update();
@@ -42,7 +40,6 @@ async function init() {
 onResize(() => {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  const dPR = window.devicePixelRatio;
   post.setSize(width * dPR, height * dPR);
 });
 

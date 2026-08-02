@@ -1,5 +1,7 @@
+import { signal } from "../third_party/guspira.js";
 import { MeshStandardMaterial, Vector2 } from "../third_party/three.module.js";
 import { lines } from "../shaders/lines.js";
+import { addMaterialParams } from "../js/params.js";
 
 class ScreenSpaceSketchMaterial extends MeshStandardMaterial {
   constructor(options) {
@@ -59,26 +61,11 @@ class ScreenSpaceSketchMaterial extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui
-    .add(params, "min", 0, 2)
-    .onChange((v) => (material.uniforms.range.value.x = v));
-  gui
-    .add(params, "max", 0, 2)
-    .onChange((v) => (material.uniforms.range.value.y = v));
-  gui
-    .add(params, "min2", 0, 2)
-    .onChange((v) => (material.uniforms.range2.value.y = v));
-  gui
-    .add(params, "max2", 0, 2)
-    .onChange((v) => (material.uniforms.range2.value.y = v));
-  gui
-    .add(params, "scale", 0, 10)
-    .onChange((v) => (material.uniforms.scale.value = v));
-  gui
-    .add(params, "radius", 1, 10)
-    .onChange((v) => (material.uniforms.radius.value = v));
+  addMaterialParams(gui, material);
+  gui.addRangeSlider("range", signal([params.min, params.max]), 0, 2, 0.01, ([lo, hi]) => material.uniforms.range.value.set(lo, hi));
+  gui.addRangeSlider("range 2", signal([params.min2, params.max2]), 0, 2, 0.01, ([lo, hi]) => material.uniforms.range2.value.set(lo, hi));
+  gui.addSlider("scale", signal(params.scale), 0, 10, 0.01, (v) => (material.uniforms.scale.value = v));
+  gui.addSlider("radius", signal(params.radius), 1, 10, 0.01, (v) => (material.uniforms.radius.value = v));
 }
 
 export { ScreenSpaceSketchMaterial, generateParams };

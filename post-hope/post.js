@@ -17,7 +17,8 @@ import { shader as orthoVs } from "../shaders/ortho-vs.js";
 import { shader as sobel } from "../shaders/sobel.js";
 import { shader as aastep } from "../shaders/aastep.js";
 import { shader as luma } from "../shaders/luma.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
+import { signal } from "../third_party/guspira.js";
+import { addPaperParams } from "../js/params.js";
 import { shader as darken } from "../shaders/blend-darken.js";
 import { shader as screen } from "../shaders/blend-screen.js";
 import { blur5 } from "../shaders/fast-separable-gaussian-blur.js";
@@ -287,32 +288,24 @@ class Post {
     this.renderPass.render(true);
   }
 
-  generateParams(gui) {
-    const controllers = {};
-    controllers["min"] = gui
-      .add(this.params, "min", 0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.minLuma.value = v;
-      });
-    controllers["max"] = gui
-      .add(this.params, "max", 0.0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.maxLuma.value = v;
-      });
-    controllers["scale"] = gui
-      .add(this.params, "scale", 0.1, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.scale.value = v;
-      });
-    controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0.0, 0.01, 0.001)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noisiness.value = v;
-      });
-    controllers["blur"] = gui.add(this.params, "blur", 0, 7, 1);
-    controllers["blurBorder"] = gui.add(this.params, "blurBorder", 0, 7, 1);
-    controllers["paper"] = generatePaperParams(gui, this.renderPass.shader);
-    return controllers;
+  generateParams(gui, options = {}) {
+    const uniforms = this.renderPass.shader.uniforms;
+    const signals = {};
+    signals.lumaRange = signal([this.params.min, this.params.max]);
+    gui.addRangeSlider("luma range", signals.lumaRange, 0, 1, 0.01, ([lo, hi]) => {
+      uniforms.minLuma.value = lo;
+      uniforms.maxLuma.value = hi;
+    });
+    signals.scale = signal(this.params.scale);
+    gui.addSlider("scale", signals.scale, 0.1, 1, 0.01, (v) => (uniforms.scale.value = v));
+    signals.noisiness = signal(this.params.noisiness);
+    gui.addSlider("noisiness", signals.noisiness, 0.0, 0.01, 0.001, (v) => (uniforms.noisiness.value = v));
+    signals.blur = signal(this.params.blur);
+    gui.addSlider("blur", signals.blur, 0, 7, 1, (v) => (this.params.blur = v));
+    signals.blurBorder = signal(this.params.blurBorder);
+    gui.addSlider("blurBorder", signals.blurBorder, 0, 7, 1, (v) => (this.params.blurBorder = v));
+    signals.paper = addPaperParams(gui, this.renderPass.shader, options.paper);
+    return signals;
   }
 }
 

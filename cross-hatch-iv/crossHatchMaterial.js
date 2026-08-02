@@ -4,6 +4,8 @@ import {
   Color,
 } from "../third_party/three.module.js";
 import { lines } from "../shaders/lines.js";
+import { signal } from "../third_party/guspira.js";
+import { addMaterialParams, addInkParams } from "../js/params.js";
 
 class CrossHatchMaterial extends MeshStandardMaterial {
   constructor(options) {
@@ -114,10 +116,9 @@ class CrossHatchMaterial extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
-  gui.add(params, "scale", 10, 400,.1).onChange((v) => (material.uniforms.scale.value = v));
+  addMaterialParams(gui, material);
+  addInkParams(gui, material.uniforms.inkColor);
+  gui.addSlider("scale", signal(params.scale), 10, 400, 0.1, (v) => (material.uniforms.scale.value = v));
 }
 
 export { CrossHatchMaterial ,generateParams };

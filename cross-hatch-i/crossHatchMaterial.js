@@ -1,3 +1,5 @@
+import { signal } from "../third_party/guspira.js";
+import { addMaterialParams, addInkParams } from "../js/params.js";
 import {
   Color,
   MeshStandardMaterial,
@@ -109,7 +111,7 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         ivec2 size = textureSize(paperTexture, 0);
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
         float line = texcube(vWorldPosition.xyz, vNormal, l*10.);
-        float line2 = clamp(0.,1.,texcube(vWorldPosition.xyz, vNormal, l2*10.)-threshold);
+        float line2 = clamp(texcube(vWorldPosition.xyz, vNormal, l2*10.)-threshold, 0., 1.);
         line = smoothstep(.5-e, .5+e, line);
         line2 = smoothstep(.5-e, .5+e, line2);
         gl_FragColor.rgb = mix( inkColor.rgb, paper.rgb, .25 + .75 * line);
@@ -122,12 +124,10 @@ class CrossHatchMaterial extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
-  gui.add(params, "min", 0, 1,.01).onChange((v) => (material.uniforms.range.value.x = v));
-  gui.add(params, "max", 0, 1,.01).onChange((v) => (material.uniforms.range.value.y = v));
-  gui.add(params, "threshold", 0, 1,.01).onChange((v) => (material.uniforms.threshold.value = v));
-  gui.add(params, "e", 0, 1,.01).onChange((v) => (material.uniforms.e.value = v));
+  addMaterialParams(gui, material);
+  addInkParams(gui, material.uniforms.inkColor);
+  gui.addRangeSlider("range", signal([params.min, params.max]), 0, 1, 0.01, ([lo, hi]) => material.uniforms.range.value.set(lo, hi));
+  gui.addSlider("threshold", signal(params.threshold), 0, 1, 0.01, (v) => (material.uniforms.threshold.value = v));
+  gui.addSlider("e", signal(params.e), 0, 1, 0.01, (v) => (material.uniforms.e.value = v));
 }
 export { CrossHatchMaterial, generateParams };

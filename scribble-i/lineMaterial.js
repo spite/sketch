@@ -1,3 +1,5 @@
+import { signal } from "../third_party/guspira.js";
+import { addMaterialParams, addInkParams } from "../js/params.js";
 import {
   MeshStandardMaterial,
   Vector2,
@@ -157,12 +159,11 @@ class LineMaterial extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
-  gui.add(params, "scale", .05, .2  ,.001).onChange((v) => (material.uniforms.scale.value = v));
-  gui.add(params, "factor", .5, 1.5,.001).onChange((v) => (material.uniforms.factor.value = v));
-  gui.add(params, "e", 0, 1,.001).onChange((v) => (material.uniforms.e.value = v));
+  addMaterialParams(gui, material);
+  addInkParams(gui, material.uniforms.inkColor);
+  gui.addSlider("scale", signal(params.scale), 0.05, 0.2, 0.001, (v) => (material.uniforms.scale.value = v));
+  gui.addSlider("factor", signal(params.factor), 0.5, 1.5, 0.001, (v) => (material.uniforms.factor.value = v));
+  gui.addSlider("e", signal(params.e), 0, 1, 0.001, (v) => (material.uniforms.e.value = v));
 }
 
 export { LineMaterial, generateParams };

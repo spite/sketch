@@ -15,7 +15,8 @@ import { shader as orthoVs } from "../shaders/ortho-vs.js";
 import { shader as sobel } from "../shaders/sobel.js";
 import { shader as aastep } from "../shaders/aastep.js";
 import { shader as luma } from "../shaders/luma.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
+import { signal } from "../third_party/guspira.js";
+import { addInkParams, addPaperParams } from "../js/params.js";
 import { shader as darken } from "../shaders/blend-darken.js";
 import { shader as screen } from "../shaders/blend-screen.js";
 import { Material as CoordsMaterial } from "./CoordsMaterial.js";
@@ -248,70 +249,33 @@ class Post {
     this.renderPass.render(true);
   }
 
-  generateParams(gui) {
-    const controllers = {};
-    controllers["scale"] = gui
-      .add(this.params, "scale", 10, 200)
-      .onChange(async (v) => {
-        coordsMat.uniforms.scale.value = v;
-      });
-    controllers["hatchScale"] = gui
-      .add(this.params, "hatchScale", 0.01, 2, 0.01)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.hatchScale.value = v;
-      });
-    controllers["contour"] = gui
-      .add(this.params, "contour", 0.0, 10)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.contour.value = v;
-      });
-    controllers["paperGrid"] = gui
-      .add(this.params, "paperGrid", 0.0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.paperGrid.value = v;
-      });
-    controllers["objectGrid"] = gui
-      .add(this.params, "objectGrid", 0.0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.objectGrid.value = v;
-      });
-    controllers["angleGrid"] = gui
-      .add(this.params, "angleGrid", 0.0, Math.PI, 0.01)
-      .onChange(async (v) => {
-        coordsMat.uniforms.angleGrid.value = v;
-      });
-    controllers["angleDark"] = gui
-      .add(this.params, "angleDark", 0.0, Math.PI, 0.01)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.angleDark.value = v;
-      });
-    controllers["angleLight"] = gui
-      .add(this.params, "angleLight", 0.0, Math.PI, 0.01)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.angleLight.value = v;
-      });
-    controllers["dark"] = gui
-      .add(this.params, "dark", 0.0, 1, 0.01)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.dark.value = v;
-      });
-    controllers["light"] = gui
-      .add(this.params, "light", 0.0, 1, 0.01)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.light.value = v;
-      });
-    controllers["inkColor"] = gui
-      .addColor(this.params, "inkColor")
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.inkColor.value.copy(v);
-      });
-    controllers["paperColor"] = gui
-      .addColor(this.params, "paperColor")
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.paperColor.value.copy(v);
-      });
-    controllers["paper"] = generatePaperParams(gui, this.renderPass.shader);
-    return controllers;
+  generateParams(gui, options = {}) {
+    const uniforms = this.renderPass.shader.uniforms;
+    const signals = {};
+    signals.inkColor = addInkParams(gui, uniforms.inkColor, { scale255: true, label: "ink color" });
+    signals.paperColor = addInkParams(gui, uniforms.paperColor, { scale255: true, label: "paper color" });
+    signals.scale = signal(this.params.scale);
+    gui.addSlider("scale", signals.scale, 10, 200, 0.01, (v) => (coordsMat.uniforms.scale.value = v));
+    signals.hatchScale = signal(this.params.hatchScale);
+    gui.addSlider("hatchScale", signals.hatchScale, 0.01, 2, 0.01, (v) => (uniforms.hatchScale.value = v));
+    signals.contour = signal(this.params.contour);
+    gui.addSlider("contour", signals.contour, 0.0, 10, 0.01, (v) => (uniforms.contour.value = v));
+    signals.paperGrid = signal(this.params.paperGrid);
+    gui.addSlider("paperGrid", signals.paperGrid, 0.0, 1, 0.01, (v) => (uniforms.paperGrid.value = v));
+    signals.objectGrid = signal(this.params.objectGrid);
+    gui.addSlider("objectGrid", signals.objectGrid, 0.0, 1, 0.01, (v) => (uniforms.objectGrid.value = v));
+    signals.angleGrid = signal(this.params.angleGrid);
+    gui.addSlider("angleGrid", signals.angleGrid, 0.0, Math.PI, 0.01, (v) => (coordsMat.uniforms.angleGrid.value = v));
+    signals.angleDark = signal(this.params.angleDark);
+    gui.addSlider("angleDark", signals.angleDark, 0.0, Math.PI, 0.01, (v) => (uniforms.angleDark.value = v));
+    signals.angleLight = signal(this.params.angleLight);
+    gui.addSlider("angleLight", signals.angleLight, 0.0, Math.PI, 0.01, (v) => (uniforms.angleLight.value = v));
+    signals.dark = signal(this.params.dark);
+    gui.addSlider("dark", signals.dark, 0.0, 1, 0.01, (v) => (uniforms.dark.value = v));
+    signals.light = signal(this.params.light);
+    gui.addSlider("light", signals.light, 0.0, 1, 0.01, (v) => (uniforms.light.value = v));
+    signals.paper = addPaperParams(gui, this.renderPass.shader, options.paper);
+    return signals;
   }
 }
 

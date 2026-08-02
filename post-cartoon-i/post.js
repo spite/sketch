@@ -12,7 +12,8 @@ import { shader as orthoVs } from "../shaders/ortho-vs.js";
 import { shader as sobel } from "../shaders/sobel.js";
 import { shader as aastep } from "../shaders/aastep.js";
 import { shader as luma } from "../shaders/luma.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
+import { signal } from "../third_party/guspira.js";
+import { addInkParams, addPaperParams } from "../js/params.js";
 import { shader as darken } from "../shaders/blend-darken.js";
 
 const normalMat = new MeshNormalMaterial({ side: DoubleSide });
@@ -236,35 +237,24 @@ class Post {
     this.renderPass.render(true);
   }
 
-  generateParams(gui) {
-    const controllers = {};
-    controllers["scale"] = gui
-      .add(this.params, "scale", 0.1, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.scale.value = v;
+  generateParams(gui, options = {}) {
+    const uniforms = this.renderPass.shader.uniforms;
+    const signals = {};
+    for (const [key, min, max, step] of [
+      ["scale", 0.1, 1, 0.01],
+      ["thickness", 0.5, 5, 0.01],
+      ["noisiness", 0, 0.02, 0.0001],
+      ["angle", 0, Math.PI, 0.01],
+    ]) {
+      const sig = signal(this.params[key]);
+      gui.addSlider(key, sig, min, max, step, (v) => {
+        uniforms[key].value = v;
       });
-    controllers["thickness"] = gui
-      .add(this.params, "thickness", 0.5, 5)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.thickness.value = v;
-      });
-    controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0, 0.02)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noisiness.value = v;
-      });
-    controllers["angle"] = gui
-      .add(this.params, "angle", 0, Math.PI)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.angle.value = v;
-      });
-    controllers["inkColor"] = gui
-      .addColor(this.params, "inkColor")
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.inkColor.value.copy(v);
-      });
-    controllers["paper"] = generatePaperParams(gui, this.renderPass.shader);
-    return controllers;
+      signals[key] = sig;
+    }
+    signals.inkColor = addInkParams(gui, uniforms.inkColor, { scale255: true });
+    signals.paper = addPaperParams(gui, this.renderPass.shader, options.paper);
+    return signals;
   }
 }
 

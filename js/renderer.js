@@ -16,7 +16,10 @@ const renderer = new WebGLRenderer({
   preserveDrawingBuffer: false,
   powerPreference: "high-performance",
 });
-renderer.setPixelRatio(window.devicePixelRatio);
+let maxPixelRatio = 2;
+let dPR = Math.min(window.devicePixelRatio, maxPixelRatio);
+
+renderer.setPixelRatio(dPR);
 renderer.setClearColor(0xffffff, 1);
 
 renderer.shadowMap.enabled = true;
@@ -40,15 +43,30 @@ function onResize(fn) {
 function resize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  const dPR = window.devicePixelRatio;
+  dPR = Math.min(window.devicePixelRatio, maxPixelRatio);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(dPR);
   renderer.setSize(width, height);
   for (const fn of resizeFns) {
     fn();
   }
 }
 
+function setMaxPixelRatio(v) {
+  maxPixelRatio = v;
+  resize();
+}
+
 window.addEventListener("resize", resize);
 
-export { renderer, scene, camera, resize, onResize };
+export {
+  renderer,
+  scene,
+  camera,
+  resize,
+  onResize,
+  dPR,
+  maxPixelRatio,
+  setMaxPixelRatio,
+};

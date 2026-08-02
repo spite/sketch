@@ -12,7 +12,8 @@ import { shader as orthoVs } from "../shaders/ortho-vs.js";
 import { shader as sobel } from "../shaders/sobel.js";
 import { shader as aastep } from "../shaders/aastep.js";
 import { shader as luma } from "../shaders/luma.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
+import { signal } from "../third_party/guspira.js";
+import { addInkParams, addPaperParams } from "../js/params.js";
 import { shader as darken } from "../shaders/blend-darken.js";
 
 const normalMat = new MeshNormalMaterial({ side: DoubleSide });
@@ -246,50 +247,26 @@ class Post {
     this.renderPass.render(true);
   }
 
-  generateParams(gui) {
-    const controllers = {};
-    controllers["scale"] = gui
-      .add(this.params, "scale", 0.1, 2)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.scale.value = v;
-      });
-    controllers["thickness"] = gui
-      .add(this.params, "thickness", 0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.thickness.value = v;
-      });
-    controllers["noiseScale"] = gui
-      .add(this.params, "noiseScale", 0.1, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noiseScale.value = v;
-      });
-    controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0, 0.02)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noisiness.value = v;
-      });
-    controllers["divergence"] = gui
-      .add(this.params, "divergence", 0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.divergence.value = v;
-      });
-    controllers["angle"] = gui
-      .add(this.params, "angle", 0, Math.PI)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.angle.value = v;
-      });
-    controllers["contour"] = gui
-      .add(this.params, "contour", 0, 10)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.contour.value = v;
-      });
-    controllers["inkColor"] = gui
-      .addColor(this.params, "inkColor")
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.inkColor.value.copy(v);
-      });
-    controllers["paper"] = generatePaperParams(gui, this.renderPass.shader);
-    return controllers;
+  generateParams(gui, options = {}) {
+    const uniforms = this.renderPass.shader.uniforms;
+    const signals = {};
+    signals.inkColor = addInkParams(gui, uniforms.inkColor, { scale255: true });
+    signals.scale = signal(this.params.scale);
+    gui.addSlider("scale", signals.scale, 0.1, 2, 0.01, (v) => (uniforms.scale.value = v));
+    signals.thickness = signal(this.params.thickness);
+    gui.addSlider("thickness", signals.thickness, 0, 1, 0.01, (v) => (uniforms.thickness.value = v));
+    signals.noiseScale = signal(this.params.noiseScale);
+    gui.addSlider("noiseScale", signals.noiseScale, 0.1, 1, 0.01, (v) => (uniforms.noiseScale.value = v));
+    signals.noisiness = signal(this.params.noisiness);
+    gui.addSlider("noisiness", signals.noisiness, 0, 0.02, 0.0001, (v) => (uniforms.noisiness.value = v));
+    signals.divergence = signal(this.params.divergence);
+    gui.addSlider("divergence", signals.divergence, 0, 1, 0.01, (v) => (uniforms.divergence.value = v));
+    signals.angle = signal(this.params.angle);
+    gui.addSlider("angle", signals.angle, 0, Math.PI, 0.01, (v) => (uniforms.angle.value = v));
+    signals.contour = signal(this.params.contour);
+    gui.addSlider("contour", signals.contour, 0, 10, 0.01, (v) => (uniforms.contour.value = v));
+    signals.paper = addPaperParams(gui, this.renderPass.shader, options.paper);
+    return signals;
   }
 }
 

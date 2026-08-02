@@ -1,3 +1,4 @@
+import { signal } from "../third_party/guspira.js";
 import {
   Group,
   Mesh,
@@ -44,10 +45,18 @@ const obj = {
   group,
   generate,
   params: (gui) => {
-    gui.add(params, "q", 1, 10, 1).onChange(generate);
-    gui.add(params, "r", 1, 10, 1).onChange(generate);
-    gui.add(params, "radius", 1, 3).onChange(generate);
-    gui.add(params, "radius2", 0.1, 1).onChange(generate);
+    for (const [key, min, max, step] of [
+      ["q", 1, 10, 1],
+      ["r", 1, 10, 1],
+      ["radius", 1, 3, 0.01],
+      ["radius2", 0.1, 1, 0.01],
+    ]) {
+      const sig = signal(params[key]);
+      gui.addSlider(`torus ${key}`, sig, min, max, step, (v) => {
+        params[key] = v;
+        generate();
+      });
+    }
   },
 };
 

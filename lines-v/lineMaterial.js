@@ -4,6 +4,8 @@ import {
   Color,
 } from "../third_party/three.module.js";
 import { lines } from "../shaders/lines.js";
+import { signal } from "../third_party/guspira.js";
+import { addMaterialParams, addInkParams } from "../js/params.js";
 
 class LineMaterial extends MeshStandardMaterial {
   constructor(options) {
@@ -245,15 +247,13 @@ class LineMaterial extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
-  gui.add(params, "scale", .1, 3,.001).onChange((v) => (material.uniforms.scale.value = v));
-  gui.add(params, "angle", 0, Math.PI,.001).onChange((v) => (material.uniforms.angle.value = v));
-  gui.add(params, "thickness", 0, 1,.001).onChange((v) => (material.uniforms.thickness.value = v));
-  gui.add(params, "min", 0, 1,.001).onChange((v) => (material.uniforms.range.value.x = v));
-  gui.add(params, "max", 0, 1,.001).onChange((v) => (material.uniforms.range.value.y = v));
-  gui.add(params, "rim", 0, 1,.001).onChange((v) => (material.uniforms.rim.value = v));
+  addMaterialParams(gui, material);
+  addInkParams(gui, material.uniforms.inkColor);
+  gui.addSlider("scale", signal(params.scale), 0.1, 3, 0.001, (v) => (material.uniforms.scale.value = v));
+  gui.addSlider("angle", signal(params.angle), 0, Math.PI, 0.001, (v) => (material.uniforms.angle.value = v));
+  gui.addSlider("thickness", signal(params.thickness), 0, 1, 0.001, (v) => (material.uniforms.thickness.value = v));
+  gui.addRangeSlider("range", signal([params.min, params.max]), 0, 1, 0.001, ([lo, hi]) => material.uniforms.range.value.set(lo, hi));
+  gui.addSlider("rim", signal(params.rim), 0, 1, 0.001, (v) => (material.uniforms.rim.value = v));
 }
 
 export { LineMaterial, generateParams };

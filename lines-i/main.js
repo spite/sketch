@@ -3,15 +3,14 @@ import {
   ScreenSpaceSketchMaterial,
   generateParams,
 } from "./screenSpaceSketchMaterial.js";
-import * as dat from "../third_party/dat.gui.module.js";
+import { GUI } from "../third_party/guspira.js";
 import { initScene, update } from "../js/scene.js";
-import { renderer, scene, camera, resize } from "../js/renderer.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
-import { generateParams as generateEnvParams } from "../js/envMap.js";
+import { renderer, scene, camera, resize, dPR } from "../js/renderer.js";
+import { addPaperParams, addEnvParams } from "../js/params.js";
 
-const gui = new dat.GUI();
-const materialFolder = gui.addFolder("Material");
-materialFolder.open();
+const gui = new GUI("Lines I", document.querySelector("#gui"));
+gui.show();
+gui.addSection("Material");
 
 const material = new ScreenSpaceSketchMaterial({
   color: 0x808080,
@@ -19,17 +18,15 @@ const material = new ScreenSpaceSketchMaterial({
   metalness: 0.1,
   side: DoubleSide,
 });
-generateParams(materialFolder, material);
-const paperController = generatePaperParams(materialFolder, material);
-paperController.setValue("Watercolor cold press");
-const envMapController = generateEnvParams(materialFolder, material);
-envMapController.setValue("bridge");
+generateParams(gui, material);
+addPaperParams(gui, material, "Watercolor cold press");
+addEnvParams(gui, material, "bridge");
 
 const tmp = new Vector2();
 function render() {
   update();
   renderer.getSize(tmp);
-  tmp.multiplyScalar(window.devicePixelRatio);
+  tmp.multiplyScalar(dPR);
   material.uniforms.resolution.value.copy(tmp);
   renderer.render(scene, camera);
   renderer.setAnimationLoop(render);

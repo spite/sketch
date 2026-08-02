@@ -5,6 +5,8 @@ import {
   Vector2,
   Color,
 } from "../third_party/three.module.js";
+import { signal } from "../third_party/guspira.js";
+import { addMaterialParams, addInkParams } from "../js/params.js";
 
 class CrossHatchMaterial extends MeshStandardMaterial {
   constructor(options) {
@@ -109,7 +111,7 @@ class CrossHatchMaterial extends MeshStandardMaterial {
         vec4 paper = texture(paperTexture, gl_FragCoord.xy / vec2(float(size.x), float(size.y)));
         vec3 coords = .01 * gl_FragCoord.xyz;
         float line = texcube(coords, vNormal, l*10.);
-        float line2 = clamp(0.,1.,texcube(coords, vNormal, l2*10.)-threshold);
+        float line2 = clamp(texcube(coords, vNormal, l2*10.)-threshold, 0., 1.);
         line = smoothstep(.5-e, .5+e, line);
         //line = .15 + .85 * line;
         line2 = smoothstep(.5-e, .5+e, line2);
@@ -123,13 +125,15 @@ class CrossHatchMaterial extends MeshStandardMaterial {
 
 function generateParams(gui, material) {
   const params = material.params;
-  gui.add(params, "roughness", 0, 1).onChange((v) => (material.roughness = v));
-  gui.add(params, "metalness", 0, 1).onChange((v) => (material.metalness = v));
-  gui.addColor(params, "inkColor").onChange((v) => (material.uniforms.inkColor.value.set(v)));
-  gui.add(params, "min", 0, 1,.01).onChange((v) => (material.uniforms.range.value.x = v));
-  gui.add(params, "max", 0, 1,.01).onChange((v) => (material.uniforms.range.value.y = v));
-  gui.add(params, "threshold", 0, 1,.01).onChange((v) => (material.uniforms.threshold.value = v));
-  gui.add(params, "e", 0, 1,.01).onChange((v) => (material.uniforms.e.value = v));
+  const uniforms = material.uniforms;
+  addMaterialParams(gui, material);
+  addInkParams(gui, uniforms.inkColor);
+  const range = signal([params.min, params.max]);
+  const threshold = signal(params.threshold);
+  const e = signal(params.e);
+  gui.addRangeSlider("range", range, 0, 1, 0.01, ([lo, hi]) => uniforms.range.value.set(lo, hi));
+  gui.addSlider("threshold", threshold, 0, 1, 0.01, (v) => (uniforms.threshold.value = v));
+  gui.addSlider("e", e, 0, 1, 0.01, (v) => (uniforms.e.value = v));
 }
 
 export { CrossHatchMaterial, generateParams };

@@ -31,15 +31,6 @@ function getTexture(name) {
   return environments[name].texture;
 }
 
-const params = {
-  environment: "bridge",
-};
-function generateParams(gui, material) {
-  return gui
-    .add(params, "environment", Object.keys(environments))
-    .onChange((v) => {
-      material.envMap = getTexture(v);
-    });
-}
+const environmentNames = Object.keys(environments);
 
-export { generateParams };
+export { getTexture, environmentNames };

@@ -14,7 +14,8 @@ import { shader as orthoVs } from "../shaders/ortho-vs.js";
 import { shader as sobel } from "../shaders/sobel.js";
 import { shader as aastep } from "../shaders/aastep.js";
 import { shader as luma } from "../shaders/luma.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
+import { signal } from "../third_party/guspira.js";
+import { addInkParams, addPaperParams } from "../js/params.js";
 import { shader as darken } from "../shaders/blend-darken.js";
 import { shader as screen } from "../shaders/blend-screen.js";
 
@@ -314,65 +315,32 @@ class Post {
     this.renderPass.render(true);
   }
 
-  generateParams(gui) {
-    const controllers = {};
-    controllers["scale"] = gui
-      .add(this.params, "scale", 0.1, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.scale.value = v;
-      });
-    controllers["thickness"] = gui
-      .add(this.params, "thickness", 0.5, 5)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.thickness.value = v;
-      });
-    controllers["contour"] = gui
-      .add(this.params, "contour", 0, 5)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.contour.value = v;
-      });
-    controllers["border"] = gui
-      .add(this.params, "border", 0, 1)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.border.value = v;
-      });
-    controllers["noisiness"] = gui
-      .add(this.params, "noisiness", 0, 0.02)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.noisiness.value = v;
-      });
-    controllers["angle"] = gui
-      .add(this.params, "angle", 0, Math.PI)
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.angle.value = v;
-      });
-    controllers["cyan"] = gui
-      .add(this.params, "cyan", 0, 1)
-      .onChange(async (v) => {
-        this.componentPass.shader.uniforms.cyan.value = v;
-      });
-    controllers["magenta"] = gui
-      .add(this.params, "magenta", 0, 1)
-      .onChange(async (v) => {
-        this.componentPass.shader.uniforms.magenta.value = v;
-      });
-    controllers["yellow"] = gui
-      .add(this.params, "yellow", 0, 1)
-      .onChange(async (v) => {
-        this.componentPass.shader.uniforms.yellow.value = v;
-      });
-    controllers["black"] = gui
-      .add(this.params, "black", 0, 1)
-      .onChange(async (v) => {
-        this.componentPass.shader.uniforms.black.value = v;
-      });
-    controllers["inkColor"] = gui
-      .addColor(this.params, "inkColor")
-      .onChange(async (v) => {
-        this.renderPass.shader.uniforms.inkColor.value.copy(v);
-      });
-    controllers["paper"] = generatePaperParams(gui, this.renderPass.shader);
-    return controllers;
+  generateParams(gui, options = {}) {
+    const uniforms = this.renderPass.shader.uniforms;
+    const signals = {};
+    signals.inkColor = addInkParams(gui, uniforms.inkColor, { scale255: true });
+    signals.scale = signal(this.params.scale);
+    gui.addSlider("scale", signals.scale, 0.1, 1, 0.01, (v) => (uniforms.scale.value = v));
+    signals.thickness = signal(this.params.thickness);
+    gui.addSlider("thickness", signals.thickness, 0.5, 5, 0.01, (v) => (uniforms.thickness.value = v));
+    signals.contour = signal(this.params.contour);
+    gui.addSlider("contour", signals.contour, 0, 5, 0.01, (v) => (uniforms.contour.value = v));
+    signals.border = signal(this.params.border);
+    gui.addSlider("border", signals.border, 0, 1, 0.01, (v) => (uniforms.border.value = v));
+    signals.noisiness = signal(this.params.noisiness);
+    gui.addSlider("noisiness", signals.noisiness, 0, 0.02, 0.0001, (v) => (uniforms.noisiness.value = v));
+    signals.angle = signal(this.params.angle);
+    gui.addSlider("angle", signals.angle, 0, Math.PI, 0.01, (v) => (uniforms.angle.value = v));
+    signals.cyan = signal(this.params.cyan);
+    gui.addSlider("cyan", signals.cyan, 0, 1, 0.01, (v) => (this.componentPass.shader.uniforms.cyan.value = v));
+    signals.magenta = signal(this.params.magenta);
+    gui.addSlider("magenta", signals.magenta, 0, 1, 0.01, (v) => (this.componentPass.shader.uniforms.magenta.value = v));
+    signals.yellow = signal(this.params.yellow);
+    gui.addSlider("yellow", signals.yellow, 0, 1, 0.01, (v) => (this.componentPass.shader.uniforms.yellow.value = v));
+    signals.black = signal(this.params.black);
+    gui.addSlider("black", signals.black, 0, 1, 0.01, (v) => (this.componentPass.shader.uniforms.black.value = v));
+    signals.paper = addPaperParams(gui, this.renderPass.shader, options.paper);
+    return signals;
   }
 }
 

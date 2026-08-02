@@ -1,16 +1,15 @@
 import { Vector2, DoubleSide } from "../third_party/three.module.js";
 import { LineMaterial, generateParams } from "./lineMaterial.js";
-import * as dat from "../third_party/dat.gui.module.js";
+import { GUI } from "../third_party/guspira.js";
 import { initScene } from "../js/scene.js";
-import { renderer, scene, camera, resize } from "../js/renderer.js";
-import { generateParams as generatePaperParams } from "../js/paper.js";
-import { generateParams as generateEnvParams } from "../js/envMap.js";
+import { renderer, scene, camera, resize, dPR } from "../js/renderer.js";
+import { addPaperParams, addEnvParams } from "../js/params.js";
 
 // from https://twitter.com/oceanquigley/status/1322991432160866304
 
-const gui = new dat.GUI();
-const materialFolder = gui.addFolder("Material");
-materialFolder.open();
+const gui = new GUI("Lines VI", document.querySelector("#gui"));
+gui.show();
+gui.addSection("Material");
 
 const material = new LineMaterial({
   color: 0x808080,
@@ -18,16 +17,14 @@ const material = new LineMaterial({
   metalness: 0.1,
   side: DoubleSide,
 });
-generateParams(materialFolder, material);
-const paperController = generatePaperParams(materialFolder, material);
-paperController.setValue("Parchment");
-const envMapController = generateEnvParams(materialFolder, material);
-envMapController.setValue("bridge");
+generateParams(gui, material);
+addPaperParams(gui, material, "Parchment");
+addEnvParams(gui, material, "bridge");
 
 const tmp = new Vector2();
 function render() {
   renderer.getSize(tmp);
-  tmp.multiplyScalar(window.devicePixelRatio);
+  tmp.multiplyScalar(dPR);
   material.uniforms.resolution.value.copy(tmp);
   renderer.render(scene, camera);
   renderer.setAnimationLoop(render);

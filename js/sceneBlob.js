@@ -1,3 +1,4 @@
+import { signal } from "../third_party/guspira.js";
 import {
   Group,
   Mesh,
@@ -60,8 +61,13 @@ const obj = {
   group,
   generate: () => generate(material),
   params: (gui) => {
-    gui.add(params, "scale", 0.1, 2, 0.1).onChange(generate);
-    gui.add(params, "noise", 0.1, 2, 0.1).onChange(generate);
+    for (const key of ["scale", "noise"]) {
+      const sig = signal(params[key]);
+      gui.addSlider(`blob ${key}`, sig, 0.1, 2, 0.1, (v) => {
+        params[key] = v;
+        generate();
+      });
+    }
   },
 };
 

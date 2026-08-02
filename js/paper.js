@@ -30,12 +30,6 @@ async function getTexture(name) {
   return papers[name].texture;
 }
 
-const params = {
-  paper: "Craft light",
-};
-function generateParams(gui, material) {
-  return gui.add(params, "paper", Object.keys(papers)).onChange(async (v) => {
-    material.uniforms.paperTexture.value = await getTexture(v);
-  });
-}
-export { generateParams };
+const paperNames = Object.keys(papers);
+
+export { getTexture, paperNames };

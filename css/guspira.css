@@ -1,0 +1,394 @@
+/*! guspira v0.1.0 — A reactive GUI toolkit for creative coding sketches
+ * https://github.com/spite/guspira
+ * MIT License, Copyright (c) 2026 Jaume Sanchez
+ */
+/* css/gui.css */
+.gui {
+  --gui-bg: #2c2c2c;
+  --gui-fg: #e0e0e0;
+  --gui-muted: #888;
+  --gui-field-bg: #3e3e3e;
+  --gui-border: #555;
+  --gui-focus: #888;
+  --gui-accent: #ffffff;
+  --gui-btn-bg: #4a4a4a;
+  --gui-btn-hover: #5a5a5a;
+  --gui-btn-active: #333333;
+  --gui-track: #333333;
+  --gui-fill: #e0e0e0;
+  --gui-thumb: #ffffff;
+  --gui-thumb-hover: #f0f0f0;
+  --gui-check: var(--gui-bg);
+  --gui-font:
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+  --gui-font-size: 13px;
+  --gui-padding: 20px;
+  --gui-gap: 8px;
+  --gui-row-height: 24px;
+  --gui-label-width: 140px;
+  --gui-radius: 4px;
+  --gui-panel-radius: 6px;
+  --gui-check-size: 16px;
+  --gui-track-height: 4px;
+  --gui-max-height: calc(100vh - 80px);
+  position: relative;
+  background-color: var(--gui-bg);
+  color: var(--gui-fg);
+  font-family: var(--gui-font);
+  font-size: var(--gui-font-size);
+  padding: var(--gui-padding);
+  border-radius: var(--gui-panel-radius);
+  box-shadow: var(--shadow-panel, 0 2px 6px rgba(0, 0, 0, 0.3));
+  z-index: 9999;
+  user-select: none;
+  display: none;
+}
+.gui.visible {
+  display: block;
+}
+.gui.gui-light {
+  --gui-bg: #f4f4f5;
+  --gui-fg: #1c1c1e;
+  --gui-muted: #6b6b70;
+  --gui-field-bg: #ffffff;
+  --gui-border: #c9c9cd;
+  --gui-focus: #6b6b70;
+  --gui-accent: #1c1c1e;
+  --gui-btn-bg: #e6e6e9;
+  --gui-btn-hover: #dcdce0;
+  --gui-btn-active: #cfcfd4;
+  --gui-track: #d4d4d8;
+  --gui-fill: #3f3f46;
+  --gui-thumb: #ffffff;
+  --gui-thumb-hover: #f4f4f5;
+  --gui-check: #f4f4f5;
+  box-shadow: var(--shadow-panel, 0 2px 6px rgba(0, 0, 0, 0.12));
+}
+.gui-title {
+  display: flex;
+  flex-direction: row;
+  font-weight: bold;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.gui-chevron {
+  display: flex;
+  align-items: center;
+  transition: transform 150ms ease-in-out;
+}
+.gui-chevron svg {
+  height: 12px;
+  width: 12px;
+}
+.gui.collapsed .gui-title > .gui-chevron {
+  transform: rotate(-90deg);
+}
+.gui-scroller {
+  max-height: var(--gui-max-height);
+  overflow: auto;
+  scrollbar-width: none;
+}
+.gui-scroller::-webkit-scrollbar {
+  display: none;
+}
+.gui-rows {
+  interpolate-size: allow-keywords;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gui-gap);
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  transition: height 100ms ease-in-out, opacity 100ms ease-in-out;
+  border-top: 1px solid var(--gui-muted);
+}
+.gui-rows.visible {
+  height: auto;
+  margin-top: 12px;
+  padding-top: 12px;
+  opacity: 1;
+}
+.gui-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gui-gap);
+  min-height: var(--gui-row-height);
+}
+.gui-row.disabled,
+.gui-section.disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.gui-hidden {
+  display: none !important;
+}
+.gui-label {
+  opacity: 0.8;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.gui-label.gui-randomizable {
+  cursor: pointer;
+  text-decoration: underline dotted transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease-in-out, opacity 120ms ease-in-out;
+}
+.gui-label.gui-randomizable:hover {
+  opacity: 1;
+  text-decoration-color: var(--gui-muted);
+}
+.gui input,
+.gui select,
+.gui button {
+  background: var(--gui-field-bg);
+  border: 1px solid var(--gui-border);
+  color: var(--gui-fg);
+  padding: 4px 6px;
+  border-radius: var(--gui-radius);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+.gui input:focus,
+.gui select:focus,
+.gui button:focus-visible {
+  border-color: var(--gui-focus);
+}
+.gui input[type=checkbox] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--gui-check-size);
+  height: var(--gui-check-size);
+  padding: 0;
+  border: 1px solid var(--gui-border);
+  border-radius: var(--gui-radius);
+  background: var(--gui-field-bg);
+  cursor: pointer;
+  transition: background-color 90ms ease-in-out, border-color 90ms ease-in-out;
+}
+.gui input[type=checkbox]:hover {
+  border-color: var(--gui-focus);
+}
+.gui input[type=checkbox]:checked {
+  background: var(--gui-accent);
+  border-color: var(--gui-accent);
+}
+.gui input[type=checkbox]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 0.3em;
+  height: 0.62em;
+  border: solid var(--gui-check);
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.6);
+  opacity: 0;
+  transition: opacity 90ms ease-in-out, transform 90ms ease-in-out;
+}
+.gui input[type=checkbox]:checked::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(45deg) scale(1);
+}
+.gui-control,
+.gui-select,
+.gui-input-text,
+.gui-input-number,
+.gui-color {
+  flex: 0 0 calc(100% - var(--gui-label-width));
+  min-width: 0;
+}
+.gui-color {
+  height: var(--gui-row-height);
+  padding: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.gui-color::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.gui-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+.gui-btn {
+  width: 100%;
+  cursor: pointer;
+  background: var(--gui-btn-bg);
+  padding: 5px 6px;
+}
+.gui-btn:hover {
+  background: var(--gui-btn-hover);
+}
+.gui-btn:active {
+  background: var(--gui-btn-active);
+}
+.gui-btn-group {
+  display: flex;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.gui-btn-group .gui-btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+.gui-row.gui-compact {
+  gap: 4px;
+}
+.gui-row.gui-compact > .gui-select,
+.gui-row.gui-compact > .gui-input-text {
+  flex: 1 1 auto;
+}
+.gui-btn-mini {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 4px 9px;
+}
+.gui-monitor {
+  flex: 0 0 auto;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+.gui-slider-container {
+  display: flex;
+  align-items: center;
+  gap: var(--gui-gap);
+  flex: 0 0 calc(100% - var(--gui-label-width));
+  min-width: 0;
+}
+.gui-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  cursor: pointer;
+}
+.gui-slider-val,
+.gui-slider-edit {
+  flex: 0 0 auto;
+  width: 52px;
+  text-align: right;
+  opacity: 0.7;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gui-range-val {
+  width: auto;
+  min-width: 52px;
+}
+.gui-slider-val {
+  cursor: text;
+}
+.gui-slider-val:hover {
+  opacity: 1;
+}
+.gui-slider-edit {
+  opacity: 1;
+  padding: 2px 4px;
+}
+.gui-text {
+  width: 100%;
+  opacity: 0.75;
+  line-height: 1.4;
+  font-size: 12px;
+}
+.gui-text a {
+  color: inherit;
+}
+.gui-row:has(.gui-separator) {
+  min-height: 12px;
+  height: 12px;
+}
+.gui-separator {
+  background: var(--gui-muted);
+  opacity: 0.5;
+  height: 1px;
+  width: 100%;
+}
+.gui-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.gui-tab-btn {
+  flex: 1 1 auto;
+  min-width: 46px;
+  padding: 5px 4px;
+  font-size: 11px;
+  background: var(--gui-field-bg);
+  border: 1px solid var(--gui-border);
+  border-bottom: none;
+  border-radius: var(--gui-radius) var(--gui-radius) 0 0;
+  color: var(--gui-muted);
+  cursor: pointer;
+}
+.gui-tab-btn:hover {
+  color: var(--gui-fg);
+}
+.gui-tab-btn.active {
+  background: var(--gui-bg);
+  color: var(--gui-fg);
+}
+.gui-tab-panel {
+  display: none;
+}
+.gui-tab-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gui-section {
+  interpolate-size: allow-keywords;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gui-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gui-muted);
+}
+.gui-section-title.gui-collapsible {
+  cursor: pointer;
+}
+.gui-section-title.gui-collapsible:hover {
+  color: var(--gui-fg);
+}
+.gui-section-title .gui-chevron svg {
+  height: 10px;
+  width: 10px;
+}
+.gui-section:not(.open) .gui-section-title .gui-chevron {
+  transform: rotate(-90deg);
+}
+.gui-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gui-gap);
+  height: auto;
+  overflow: hidden;
+  transition: height 120ms ease-in-out;
+}
+.gui-section:not(.open) > .gui-section-body {
+  height: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gui-rows,
+  .gui-section-body,
+  .gui-chevron {
+    transition: none;
+  }
+}
